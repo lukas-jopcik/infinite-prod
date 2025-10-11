@@ -5,13 +5,39 @@ import { ArticlesAPI } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { generateHomepageMetadata } from "@/lib/seo"
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo"
 import { WebsiteStructuredData } from "@/components/structured-data"
 import { HomepageSkeleton } from "@/components/skeleton-loader"
 import { Suspense } from "react"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = generateHomepageMetadata()
+export const dynamic = 'force-dynamic'
+
+export async function generateMetadata(): Promise<Metadata> {
+  // Get the latest article for dynamic OG image
+  try {
+    const latestArticle = await ArticlesAPI.getArticlesByCategory("objav-dna", 1)
+    const article = latestArticle?.articles?.[0]
+    
+    if (article) {
+      return generateSEOMetadata({
+        title: "Objav dňa z vesmíru",
+        description: "Denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii. Najnovšie informácie z NASA, ESA a Hubble teleskopu.",
+        image: article.imageUrl,
+        url: "/",
+      })
+    }
+  } catch (error) {
+    console.error('Error fetching latest article for homepage metadata:', error)
+  }
+  
+  // Fallback to default metadata
+  return generateSEOMetadata({
+    title: "Objav dňa z vesmíru",
+    description: "Denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii. Najnovšie informácie z NASA, ESA a Hubble teleskopu.",
+    url: "/",
+  })
+}
 
 async function HomePageContent() {
   // Use optimized GSI endpoints for each category
