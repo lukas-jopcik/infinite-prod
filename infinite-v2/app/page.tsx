@@ -45,23 +45,20 @@ async function HomePageContent() {
   let recentArticles: any[] = [];
   let discoveryArticles: any[] = [];
   let communityArticles: any[] = [];
-  let kidsArticles: any[] = [];
   let weeklyArticles: any[] = [];
   
   try {
     // Fetch per-category lists in parallel
     const discoveryPromise = ArticlesAPI.getArticlesByCategory("objav-dna", 12).catch(() => ({ articles: [] }));
     // Get articles from other categories in parallel (including weekly picks)
-    const [communityResponse, kidsResponse, weeklyResponse] = await Promise.all([
+    const [communityResponse, weeklyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("komunita", 6).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("deti-a-vesmir", 6).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 12).catch(() => ({ articles: [] })),
     ]);
     const discoveryResponse = await discoveryPromise;
     discoveryArticles = discoveryResponse?.articles || [];
 
     communityArticles = communityResponse?.articles || [];
-    kidsArticles = kidsResponse?.articles || [];
     weeklyArticles = weeklyResponse?.articles || [];
 
     // Build combined latest across all categories and pick hero globally
@@ -69,7 +66,6 @@ async function HomePageContent() {
       ...discoveryArticles,
       ...weeklyArticles,
       ...communityArticles,
-      ...kidsArticles,
     ];
     combined.sort((a, b) => new Date(b.originalDate || b.publishedAt).getTime() - new Date(a.originalDate || a.publishedAt).getTime());
     latestArticle = combined[0] || null;
@@ -211,37 +207,6 @@ async function HomePageContent() {
         </section>
       )}
 
-      {/* Kids Section */}
-      {kidsArticles.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-foreground">Deti & Vesmír</h2>
-            <Button variant="ghost" asChild>
-              <Link href="/kategoria/deti-a-vesmir" className="flex items-center gap-2">
-                Viac pre deti
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {kidsArticles.slice(0, 3).map((article) => (
-              <ArticleCard 
-                key={article.slug} 
-                slug={article.slug}
-                title={article.title}
-                perex={article.perex}
-                category={article.category}
-                date={article.originalDate || article.publishedAt}
-                image={article.imageUrl || '/placeholder-astronomy.jpg'}
-                imageAlt={article.title}
-                author={article.author}
-                source="Infinite AI"
-                type={article.category === 'objav-dna' ? 'discovery' : 'article'}
-              />
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Newsletter CTA */}
       <section className="border-y border-border bg-card/50 py-16">

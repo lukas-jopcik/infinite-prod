@@ -82,9 +82,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     redirect(`/objav-dna/${slug}`)
   } else if (article.category === "tyzdenny-vyber") {
     redirect(`/tyzdenny-vyber/${slug}`)
-  } else if (article.category === "komunita") {
-    redirect(`/kategoria/komunita/${slug}`)
   }
+  // Community articles stay on /clanok/ URL
 
   return (
     <ArticlePageWrapper article={article}>
@@ -108,7 +107,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <BreadcrumbStructuredData 
           items={[
             { name: "Domov", url: "/" },
-            { name: article.category === "tyzdenny-vyber" ? "Týždenný výber" : article.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), url: `/kategoria/${article.category}` },
+            { name: article.category === "tyzdenny-vyber" ? "Týždenný výber" : article.category === "komunita" ? "Komunita" : article.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), url: article.category === "komunita" ? "/kategoria/komunita" : `/kategoria/${article.category}` },
             { name: article.title, url: `/clanok/${article.slug}` },
           ]}
         />
@@ -137,11 +136,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   label:
                     article.category === "tyzdenny-vyber"
                       ? "Týždenný výber"
+                      : article.category === "komunita"
+                      ? "Komunita"
                       : article.category
                           .split("-")
                           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                           .join(" "),
-                  href: `/kategoria/${article.category}`,
+                  href: article.category === "komunita" ? "/kategoria/komunita" : `/kategoria/${article.category}`,
                 },
                 { label: article.title },
               ]}

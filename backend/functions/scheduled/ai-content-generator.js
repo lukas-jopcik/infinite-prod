@@ -112,8 +112,14 @@ exports.handler = async (event) => {
                 // Process and optimize images
                 const processedImages = await processImages(rawItem, generatedArticle);
                 
+                // Fetch community image if this is a community article
+                let communityImageUrl = null;
+                if (rawItem.category === 'komunita') {
+                    communityImageUrl = await fetchCommunityImage(generatedArticle.h1Title, generatedArticle.keywords);
+                }
+                
                 // Create article record
-                const articleRecord = createArticleRecord(rawItem, generatedArticle, processedImages);
+                const articleRecord = createArticleRecord(rawItem, generatedArticle, processedImages, communityImageUrl);
                 
                 // Store article in DynamoDB
                 await storeArticle(articleRecord);
@@ -566,8 +572,10 @@ function parseGeneratedContent(generatedContent, rawItem) {
         
         const parsedContent = JSON.parse(jsonMatch[0]);
         
-        // Validate required fields
+        // Validate required fields based on category
+        const isCommunity = rawItem.category === 'komunita';
         const requiredFields = ['metaTitle', 'metaDescription', 'h1Title', 'perex', 'sections', 'faq'];
+        
         for (const field of requiredFields) {
             if (!parsedContent[field]) {
                 throw new Error(`Missing required field: ${field}`);
@@ -620,9 +628,9 @@ function validateGeneratedContent(generatedContent, category) {
             errors.push('Weekly picks must have exactly 4 sections');
         }
     } else if (isCommunity) {
-        // Community articles should have exactly 4 sections
-        if (!generatedContent.sections || generatedContent.sections.length !== 4) {
-            errors.push('Community articles must have exactly 4 sections');
+        // Community articles should have 3-5 dynamic sections
+        if (!generatedContent.sections || generatedContent.sections.length < 3 || generatedContent.sections.length > 5) {
+            errors.push('Community articles must have 3-5 sections');
         }
     } else {
         // Daily discoveries should have exactly 5 sections
@@ -631,8 +639,8 @@ function validateGeneratedContent(generatedContent, category) {
         }
     }
     
-    // FAQ is optional for community articles
-    if (!isCommunity && (!generatedContent.faq || generatedContent.faq.length < 3)) {
+    // FAQ is required for all content types including community
+    if (!generatedContent.faq || generatedContent.faq.length < 3) {
         errors.push('Must have at least 3 FAQ items');
     }
     
@@ -815,20 +823,149 @@ async function uploadToS3(imageBuffer, s3Key) {
  */
 function generateAltText(rawItem, generatedContent) {
     const title = generatedContent.h1Title || rawItem.title || 'Astronomický objekt';
-    const source = rawItem.source === 'apod' ? 'APOD / NASA' : 'ESA / Hubble';
+    const source = rawItem.source === 'apod' ? 'APOD / NASA' : 
+                   rawItem.source?.includes('reddit') ? 'Komunita' : 'ESA / Hubble';
     
     return `${title} - ${source}`;
 }
 
 /**
+ * Fetch community image from Pexels
+ */
+async function fetchCommunityImage(title, keywords) {
+    try {
+        console.log(`Fetching community image for: ${title}`);
+        
+        // Get Pexels API key from environment variables
+        const pexelsApiKey = process.env.PEXELS_API_KEY;
+        
+        if (!pexelsApiKey) {
+            console.log('No Pexels API key available, skipping image fetch');
+            return null;
+        }
+        
+        // Create search query from title and keywords
+        const searchQuery = createImageSearchQuery(title, keywords);
+        console.log(`Search query: ${searchQuery}`);
+        
+        // Try Pexels API
+        const pexelsImage = await fetchFromPexels(searchQuery, pexelsApiKey);
+        if (pexelsImage) {
+            return pexelsImage;
+        }
+        
+        console.log('No suitable image found from Pexels');
+        return null;
+        
+    } catch (error) {
+        console.error('Error fetching community image:', error);
+        return null;
+    }
+}
+
+/**
+ * Create search query for image APIs
+ */
+function createImageSearchQuery(title, keywords) {
+    // Extract relevant words from title
+    const titleWords = title.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 3)
+        .slice(0, 3);
+    
+    // Add relevant keywords
+    const relevantKeywords = (keywords || [])
+        .filter(keyword => keyword.length > 3)
+        .slice(0, 2);
+    
+    // Combine and create search query
+    const searchTerms = [...titleWords, ...relevantKeywords];
+    return searchTerms.join(' ');
+}
+
+/**
+ * Fetch image from Pexels API
+ */
+async function fetchFromPexels(query, apiKey) {
+    try {
+        console.log(`Searching Pexels for: ${query}`);
+        
+        const response = await axios.get('https://api.pexels.com/v1/search', {
+            headers: {
+                'Authorization': apiKey
+            },
+            params: {
+                query: query,
+                per_page: 10,
+                orientation: 'landscape'
+            },
+            timeout: 10000
+        });
+        
+        if (response.data && response.data.photos && response.data.photos.length > 0) {
+            const photo = response.data.photos[0];
+            const imageUrl = photo.src.large2x || photo.src.large;
+            
+            console.log(`Found Pexels image: ${imageUrl}`);
+            
+            // Download and upload to S3
+            const s3Url = await downloadAndUploadImage(imageUrl, 'pexels');
+            return s3Url;
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Error fetching from Pexels:', error.message);
+        return null;
+    }
+}
+
+
+/**
+ * Download image and upload to S3
+ */
+async function downloadAndUploadImage(imageUrl, source) {
+    try {
+        console.log(`Downloading image from ${source}: ${imageUrl}`);
+        
+        // Download image
+        const imageBuffer = await downloadImage(imageUrl);
+        if (!imageBuffer) {
+            throw new Error('Failed to download image');
+        }
+        
+        // Generate S3 key
+        const timestamp = Date.now();
+        const s3Key = `images/community/${source}-${timestamp}.jpg`;
+        
+        // Upload to S3
+        const s3Url = await uploadToS3(imageBuffer, s3Key);
+        
+        console.log(`Successfully uploaded community image: ${s3Url}`);
+        return s3Url;
+        
+    } catch (error) {
+        console.error('Error downloading and uploading image:', error);
+        return null;
+    }
+}
+
+/**
  * Create article record for DynamoDB
  */
-function createArticleRecord(rawItem, generatedContent, processedImages) {
+function createArticleRecord(rawItem, generatedContent, processedImages, communityImageUrl = null) {
     const articleId = uuidv4();
     const slug = generateSlug(generatedContent.h1Title);
     
     // Set the main image URL for frontend compatibility
-    const imageUrl = processedImages.heroImage?.url || processedImages.cardImage?.url || processedImages.ogImage?.url || null;
+    // For community articles, prioritize community image, otherwise use processed images
+    const imageUrl = communityImageUrl || 
+                    processedImages.heroImage?.url || 
+                    processedImages.cardImage?.url || 
+                    processedImages.ogImage?.url || 
+                    null;
     
     // Determine category and type based on raw content
     const category = rawItem.category || 'objav-dna';
@@ -1108,61 +1245,64 @@ function createCommunityPrompt(rawItem) {
 - Engagement skóre: ${rawItem.communityEngagement?.engagementScore || 0}
 
 **Štýl a jazyk (KOMUNITA):**
-- TÓN: Hravý, komunita-orientovaný, interaktívny
-- ŠTYL: Menej formálny, viac konverzačný
-- POUŽÍVAJ EMOJI A ZAUJÍMAVÉ FORMÁTOVANIE 🚀✨🌟
+- TÓN: Konverzačný, priateľský, ale profesionálny
+- ŠTYL: Menej formálny, viac príbehový
+- NEPOUŽÍVAJ EMOJI v nadpisoch ani v texte
 - Pridaj citáty z pôvodných komentárov (v uvozovkách)
+- Vytváraj otázky prirodzene vložené do textu
 - Vysvetľuj veci jednoducho, ako by si to povedal kamarátovi
 
 **Požiadavky na článok:**
 1. **Meta title** (max 60 znakov): Zaujímavý, SEO-optimalizovaný názov VÝLUČNE V SLOVENČINE
 2. **Meta description** (max 160 znakov): Krátky popis článku VÝLUČNE V SLOVENČINE
-3. **H1 názov**: Hlavný názov článku VÝLUČNE V SLOVENČINE s emoji
+3. **H1 názov**: Hlavný názov článku VÝLUČNE V SLOVENČINE (bez emoji)
 4. **Perex** (MINIMÁLNE 150 znakov): Úvodný text, ktorý zaujme čitateľa
-5. **4 H2 sekcií** s podrobným obsahom (každá sekcia MINIMÁLNE 300 znakov):
-   - **Čo sa deje 🚀** (MINIMÁLNE 300 znakov) - vysvetli hlavný obsah
-   - **Reakcia komunity 💬** (MINIMÁLNE 300 znakov) - citáty z komentárov
-   - **Najzaujímavejšie komentáre ⭐** (MINIMÁLNE 300 znakov) - top komentáre
-   - **Prečo je to dôležité 🌟** (MINIMÁLNE 300 znakov) - význam a kontext
+5. **Dynamické sekcie** (3-5 sekcií, každá MINIMÁLNE 300 znakov):
+   - Názvy sekcií vytvor na základe obsahu
+   - Musí byť chytľavé a zaujímavé
+   - Prirodzene vlož otázky do textu namiesto FAQ
+   - Príklady dobrých názvov: "Ako to celé začalo", "Čo na to hovorí komunita", "Prekvapivé zistenia"
+6. **FAQ sekcia** (3-5 otázok):
+   - Vytvor prirodzené otázky založené na obsahu
+   - Otázky musia byť relevantné k téme
+   - Odpovede stručné ale informatívne
 
 **DÔLEŽITÉ:**
 - Celkový obsah MUSÍ mať aspoň 1200 znakov!
 - Použij citáty z komentárov v uvozovkách
-- Pridaj emoji do nadpisov a textu
 - Buď hravý, ale stále informativný
 - Vysvetľuj astronomické pojmy jednoducho
+- Vytváraj chytľavé názvy sekcií, ktoré budú zaujímať čitateľov
 
 **Formát výstupu (JSON):**
 \`\`\`json
 {
   "metaTitle": "Názov pre SEO",
   "metaDescription": "Popis pre SEO",
-  "h1Title": "Hlavný názov s emoji",
+  "h1Title": "Hlavný názov bez emoji",
   "perex": "Úvodný text...",
   "sections": [
     {
-      "title": "Čo sa deje 🚀",
+      "title": "Dynamický názov sekcie",
       "content": "Obsah sekcie..."
     },
     {
-      "title": "Reakcia komunity 💬", 
+      "title": "Ďalší zaujímavý názov", 
       "content": "Obsah s citátmi..."
-    },
+    }
+  ],
+  "faq": [
     {
-      "title": "Najzaujímavejšie komentáre ⭐",
-      "content": "Obsah s komentármi..."
-    },
-    {
-      "title": "Prečo je to dôležité 🌟",
-      "content": "Obsah o význame..."
+      "question": "Otázka založená na obsahu",
+      "answer": "Stručná ale informatívna odpoveď"
     }
   ],
   "keywords": ["kľúčové", "slová", "pre", "seo"],
-  "estimatedReadingTime": "5 minút"
+  "estimatedReadingTime": "X minút"
 }
 \`\`\`
 
-Vytvor zaujímavý, hravý článok, ktorý bude mať úspech v komunite! 🚀`;
+Vytvor zaujímavý, chytľavý článok, ktorý bude mať úspech v komunite!`;
 }
 
 // Export functions for testing
@@ -1175,5 +1315,7 @@ module.exports = {
     validateGeneratedContent,
     createArticleRecord,
     storeArticle,
-    checkExistingArticle
+    checkExistingArticle,
+    fetchCommunityImage,
+    fetchFromPexels
 };

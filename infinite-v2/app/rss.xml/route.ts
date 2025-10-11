@@ -11,7 +11,6 @@ export async function GET() {
     const [objavDnaResponse, komunitaResponse, detiResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 20).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("komunita", 10).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("deti-a-vesmir", 10).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 10).catch(() => ({ articles: [] })),
     ])
 

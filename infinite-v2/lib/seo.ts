@@ -144,7 +144,6 @@ export function generateCategoryMetadata(category: string, description?: string)
   const categoryNames: Record<string, string> = {
     "objav-dna": "Objav dňa",
     "vysvetlenia": "Vysvetlenia",
-    "deti-a-vesmir": "Deti & Vesmír",
     "komunita": "Komunita",
     "tyzdenny-vyber": "Týždenný výber",
   }

@@ -115,12 +115,6 @@ export default function AboutPage() {
                   Príspevky z astronomickej komunity, astrofotografie a diskusie o vesmíre.
                 </p>
               </div>
-              <div className="rounded-lg border-l-4 border-accent bg-card/50 p-4">
-                <h3 className="mb-1 font-semibold text-foreground">Obsah pre deti</h3>
-                <p className="text-sm text-muted-foreground">
-                  Zábavné a vzdelávacie články o vesmíre špeciálne pre mladých astronómov.
-                </p>
-              </div>
             </div>
           </section>
 

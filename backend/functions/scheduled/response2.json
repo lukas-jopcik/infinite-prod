@@ -1,1 +1,1 @@
-{"statusCode":200,"body":"{\"message\":\"AI content generation completed successfully\",\"processedCount\":1,\"errorCount\":0,\"totalItems\":1,\"results\":[{\"contentId\":\"2b851c57-9ed0-415d-87bb-435afe607778\",\"articleId\":\"d2cfa78c-5fa2-441e-a2dc-c5f2c254741b\",\"title\":\"Špirálová galaxia NGC 3511 – fascinujúci pohľad do vesmíru\",\"slug\":\"spiralova-galaxia-ngc-3511-fascinujuci-pohlad-do-vesmiru\"}]}"}
+{"statusCode":200,"body":"{\"message\":\"AI content generation completed successfully\",\"processedCount\":0,\"errorCount\":0,\"totalItems\":1,\"results\":[]}"}

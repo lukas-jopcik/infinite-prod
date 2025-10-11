@@ -19,7 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/kategoria/deti-a-vesmir`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
@@ -55,7 +54,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [objavDnaResponse, komunitaResponse, detiResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 100).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("komunita", 50).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("deti-a-vesmir", 50).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 50).catch(() => ({ articles: [] })),
     ])
 

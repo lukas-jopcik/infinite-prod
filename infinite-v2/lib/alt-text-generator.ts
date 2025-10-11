@@ -67,7 +67,6 @@ function getCategoryContext(category: string): string {
     'objav-dna': 'objav dňa z vesmíru',
     'tyzdenny-vyber': 'týždenný výber',
     'komunita': 'komunitný príspevok',
-    'deti-a-vesmir': 'článok pre deti',
     'vysvetlenia': 'vysvetlenie',
   }
 
@@ -138,7 +137,6 @@ export function generateCategoryAltText(category: string): string {
     'objav-dna': 'Objav dňa z vesmíru - denné astronomické objavy',
     'tyzdenny-vyber': 'Týždenný výber - najlepšie články z vesmíru',
     'komunita': 'Komunita - príspevky od čitateľov',
-    'deti-a-vesmir': 'Deti a vesmír - vzdelávacie články pre deti',
     'vysvetlenia': 'Vysvetlenia - komplexné témy jednoducho',
   }
 

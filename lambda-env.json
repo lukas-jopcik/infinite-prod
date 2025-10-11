@@ -1,0 +1,11 @@
+{
+  "Variables": {
+    "DYNAMODB_RAW_CONTENT_TABLE": "InfiniteRawContent-dev",
+    "ENVIRONMENT": "dev",
+    "OPENAI_SECRET_ARN": "arn:aws:secretsmanager:eu-central-1:349660737637:secret:infinite/openai-api-key-l4iBim",
+    "DYNAMODB_ARTICLES_TABLE": "InfiniteArticles-dev",
+    "S3_IMAGES_BUCKET": "infinite-images-dev-349660737637",
+    "REGION": "eu-central-1",
+    "PEXELS_API_KEY": "NcDveCHhD3hEMgHN1dNbumWqfzNB5x2mJXc3Rvn2M0NFZCtfR5CwhUfF"
+  }
+}

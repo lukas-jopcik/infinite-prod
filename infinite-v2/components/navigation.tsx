@@ -10,7 +10,6 @@ const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
   { name: "Vysvetlenia", slug: "vysvetlenia" },
   { name: "Komunita", slug: "komunita" },
-  { name: "Deti & Vesmír", slug: "deti-a-vesmir" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
 ]
 

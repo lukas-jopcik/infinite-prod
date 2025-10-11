@@ -47,7 +47,6 @@ export function AnalyticsDashboard() {
           topCategories: [
             { category: 'objav-dna', views: 8920 },
             { category: 'komunita', views: 2340 },
-            { category: 'deti-a-vesmir', views: 1890 },
             { category: 'vzdelavanie', views: 1270 }
           ],
           deviceTypes: [

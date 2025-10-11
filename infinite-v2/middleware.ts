@@ -4,17 +4,7 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Redirect old category URLs to new ones
-  if (pathname === '/kategoria/deti-vesmir') {
-    const redirectUrl = new URL('/kategoria/deti-a-vesmir', request.url)
-    return NextResponse.redirect(redirectUrl, 301)
-  }
 
-  // Redirect non-existent category
-  if (pathname === '/kategoria/vysvetlenia') {
-    const redirectUrl = new URL('/kategoria/objav-dna', request.url)
-    return NextResponse.redirect(redirectUrl, 301)
-  }
 
   return NextResponse.next()
 }

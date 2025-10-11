@@ -54,7 +54,6 @@ export const CONTENT_CONFIG = {
   categories: [
     { slug: 'objav-dna', name: 'Objav dňa', description: 'Denné objavy z vesmíru' },
     { slug: 'komunita', name: 'Komunita', description: 'Články od komunity' },
-    { slug: 'deti-a-vesmir', name: 'Deti & Vesmír', description: 'Astronómia pre deti' },
     { slug: 'vzdelavanie', name: 'Vzdelávanie', description: 'Vzdelávacie materiály' },
     { slug: 'technologie', name: 'Technológie', description: 'Vesmírne technológie' }
   ],

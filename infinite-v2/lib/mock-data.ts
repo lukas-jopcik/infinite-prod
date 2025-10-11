@@ -58,7 +58,7 @@ export const mockArticles: Article[] = [
     perex:
       "Zábavný a vzdelávací sprievodca planétami pre mladých astronómov. Objavte tajomstvá Merkúra, Venuše, Zeme a ďalších.",
     content: "Kompletný obsah článku...",
-    category: "deti-a-vesmir",
+    category: "vysvetlenia",
     date: "2025-01-04",
     image: "/solar-system-planets-colorful.jpg",
     imageAlt: "Planéty slnečnej sústavy",
