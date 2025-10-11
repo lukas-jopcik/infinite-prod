@@ -70,39 +70,6 @@ export default async function CommunityArticlePage({ params }: CommunityPageProp
     source: article.source || 'Komunita'
   })
 
-  const isReddit = article.source?.includes('reddit.com')
-  const isSpaceCom = article.source?.includes('space.com')
-  
-  const getSourceIcon = () => {
-    if (isReddit) {
-      return (
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-orange-500 rounded-sm flex items-center justify-center">
-            <span className="text-white text-sm font-bold">R</span>
-          </div>
-          <span className="text-orange-400 font-medium">Reddit</span>
-        </div>
-      )
-    }
-    if (isSpaceCom) {
-      return (
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-500 rounded-sm flex items-center justify-center">
-            <span className="text-white text-sm font-bold">S</span>
-          </div>
-          <span className="text-blue-400 font-medium">Space.com</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 bg-cyan-500 rounded-sm flex items-center justify-center">
-          <span className="text-white text-sm font-bold">C</span>
-        </div>
-        <span className="text-cyan-400 font-medium">Komunita</span>
-      </div>
-    )
-  }
 
   const getEngagementStats = () => {
     if (!article.communityEngagement) return null
@@ -156,11 +123,8 @@ export default async function CommunityArticlePage({ params }: CommunityPageProp
       <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Article Header */}
         <header className="mb-8">
-          {/* Source Badge and Date */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="engagement-badge">
-              {getSourceIcon()}
-            </div>
+          {/* Date */}
+          <div className="flex items-center justify-end mb-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
               <time dateTime={article.originalDate}>
@@ -294,8 +258,12 @@ export default async function CommunityArticlePage({ params }: CommunityPageProp
         <AdContainer position="article" />
       </article>
 
-      {/* Newsletter Signup */}
-      <NewsletterSignup />
+      {/* Newsletter CTA */}
+      <div className="mt-12 rounded-2xl border border-border bg-gradient-to-br from-accent/5 to-accent/10 p-8 text-center">
+        <h3 className="mb-2 text-2xl font-bold text-foreground">Nenechaj si ujsť žiadny objav</h3>
+        <p className="mb-6 text-muted-foreground">Dostávaj Objav dňa priamo do svojej schránky každé ráno.</p>
+        <NewsletterSignup />
+      </div>
 
       {/* Structured Data */}
       <ArticleStructuredData 

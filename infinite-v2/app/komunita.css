@@ -36,18 +36,6 @@
   font-weight: bold;
 }
 
-.engagement-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  background: rgba(6, 182, 212, 0.2);
-  color: #67e8f9;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  backdrop-filter: blur(4px);
-}
 
 /* Community page specific styles */
 .community-hero {
@@ -128,34 +116,6 @@
   border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
-/* Community source badges */
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.source-badge.reddit {
-  background: rgba(251, 146, 60, 0.2);
-  color: #fb923c;
-  border: 1px solid rgba(251, 146, 60, 0.3);
-}
-
-.source-badge.space-com {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.source-badge.community {
-  background: rgba(6, 182, 212, 0.2);
-  color: #67e8f9;
-  border: 1px solid rgba(6, 182, 212, 0.3);
-}
 
 /* Hover effects for community cards */
 .community-article-card:hover .community-quote {
@@ -163,10 +123,6 @@
   background: rgba(30, 41, 59, 0.4);
 }
 
-.community-article-card:hover .engagement-badge {
-  background: rgba(6, 182, 212, 0.3);
-  border-color: rgba(6, 182, 212, 0.5);
-}
 
 /* Community page layout */
 .community-grid {
