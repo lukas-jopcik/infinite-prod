@@ -1,12 +1,12 @@
-<<<<<<< HEAD
+# Environment variables
+.env
+.env.*
 .env.local
 *.pem
 aws-credentials.json
-=======
+
 # General
 .DS_Store
-.env
-.env.*
 *.log
 coverage/
 dist/
@@ -14,6 +14,7 @@ dist/
 # Next.js
 .next/
 out/
+build/
 
 # Node
 node_modules/
@@ -22,15 +23,11 @@ node_modules/
 # Lambda build artifacts
 aws/lambda/*/*.zip
 aws/lambda/*/node_modules/
-
-# OS
-Thumbs.db
->>>>>>> ef0b8de5b5302fd074816ae876fda868a338dc05
-node_modules/
-*.zip
 *.zip
 
 # Lambda deployment packages
 backend/deployment_packages/*.zip
 backend/functions/**/*.zip
 
+# OS
+Thumbs.db
