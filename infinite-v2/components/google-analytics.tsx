@@ -15,6 +15,24 @@ export function GoogleAnalytics({ trackingId = GA_TRACKING_ID }: GoogleAnalytics
   return (
     <>
       <Script
+        id="google-consent-mode"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            
+            // Initialize consent mode with denied defaults
+            gtag('consent', 'default', {
+              'ad_storage': 'denied',
+              'ad_user_data': 'denied',
+              'ad_personalization': 'denied',
+              'analytics_storage': 'denied'
+            });
+          `,
+        }}
+      />
+      <Script
         strategy="afterInteractive"
         src={`https://www.googletagmanager.com/gtag/js?id=${trackingId}`}
       />
@@ -23,8 +41,6 @@ export function GoogleAnalytics({ trackingId = GA_TRACKING_ID }: GoogleAnalytics
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', '${trackingId}', {
               page_title: document.title,
@@ -43,10 +59,8 @@ export function GoogleAnalytics({ trackingId = GA_TRACKING_ID }: GoogleAnalytics
                 video_engagement: true,
                 file_downloads: true
               },
-              // Privacy settings
+              // Privacy settings - let consent mode control these
               anonymize_ip: true,
-              allow_google_signals: false,
-              allow_ad_personalization_signals: false,
               // Content grouping for astronomy platform
               content_group1: 'astronomy_content',
               content_group2: 'article_type',

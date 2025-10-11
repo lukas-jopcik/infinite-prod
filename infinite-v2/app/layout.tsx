@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer"
 import { PerformanceMonitor } from "@/components/performance-monitor"
 import { AnalyticsProvider } from "@/components/google-analytics"
 import { AdManager } from "@/components/ad-manager"
+import { GoogleConsentMode } from "@/components/google-consent-mode"
 import { GOOGLE_VERIFICATION_CONFIG } from "@/lib/config"
 import { Suspense } from "react"
 import { SpaceLoading } from "@/components/space-loading"
@@ -66,6 +67,7 @@ export default function RootLayout({
   return (
     <html lang="sk" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+        <GoogleConsentMode />
         <AnalyticsProvider>
           <AdManager>
             <Suspense fallback={<SpaceLoading />}>

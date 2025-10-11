@@ -17,7 +17,7 @@ export const GOOGLE_VERIFICATION_CONFIG = {
 
 // Google AdSense Configuration
 export const ADSENSE_CONFIG = {
-  client: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-xxxxxxxxxx',
+  client: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-7836061933361865',
   slots: {
     header: process.env.NEXT_PUBLIC_ADSENSE_SLOT_HEADER || 'xxxxxxxxxx',
     sidebar: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR || 'xxxxxxxxxx',

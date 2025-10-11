@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { useEffect, useState } from 'react'
 import { ADSENSE_CONFIG } from '@/lib/config'
 import { trackAdView, trackAdClick } from '@/lib/analytics'
+import { useGoogleConsent } from './google-consent-mode'
 
 interface AdSenseProps {
   client?: string
@@ -28,6 +29,7 @@ export function AdSense({
 }: AdSenseProps) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const consent = useGoogleConsent()
 
   useEffect(() => {
     if (isLoaded && slot) {
@@ -52,7 +54,11 @@ export function AdSense({
     }
   }
 
-  if (!ADSENSE_CONFIG.enabled || !client || !slot || client === 'ca-pub-xxxxxxxxxx') {
+  // Check if ads are allowed based on consent
+  const adsAllowed = consent?.ad_storage === 'granted' && consent?.ad_user_data === 'granted'
+  const isNonPersonalized = consent?.ad_personalization === 'denied'
+
+  if (!ADSENSE_CONFIG.enabled || !client || !slot || client === 'ca-pub-xxxxxxxxxx' || !adsAllowed) {
     return null
   }
 
@@ -83,6 +89,7 @@ export function AdSense({
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive={responsive ? 'true' : 'false'}
+        data-npa={isNonPersonalized ? 'true' : 'false'}
         onClick={handleClick}
       />
       <Script

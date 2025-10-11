@@ -30,12 +30,14 @@ GOOGLE_SITE_VERIFICATION=your_verification_code
 
 ### Google AdSense
 ```
-NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxx
-NEXT_PUBLIC_ADSENSE_SLOT_HEADER=xxxxxxxxxx
-NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR=xxxxxxxxxx
-NEXT_PUBLIC_ADSENSE_SLOT_FOOTER=xxxxxxxxxx
-NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE=xxxxxxxxxx
+NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-7836061933361865
+NEXT_PUBLIC_ADSENSE_SLOT_HEADER=your_slot_id
+NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR=your_slot_id
+NEXT_PUBLIC_ADSENSE_SLOT_FOOTER=your_slot_id
+NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE=your_slot_id
 ```
+
+**Note:** AdSense Client ID is already configured. Slot IDs need to be created in Google AdSense Console and configured here.
 
 ### Affiliate Marketing
 ```
@@ -56,8 +58,9 @@ NEXT_PUBLIC_DOGNET_AFFILIATE_ID=your_affiliate_id
 
 - **API Configuration**: `lib/config.ts` and `lib/api.ts`
 - **Site Configuration**: `lib/config.ts`
-- **Analytics**: `lib/config.ts` and `components/analytics/`
-- **AdSense**: `lib/config.ts` and `components/ads/`
+- **Analytics**: `lib/config.ts` and `components/google-analytics.tsx`
+- **AdSense**: `lib/config.ts` and `components/google-adsense.tsx`
+- **Consent Mode**: `components/google-consent-mode.tsx`
 
 ## Important Notes
 

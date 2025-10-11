@@ -10,6 +10,7 @@ import {
   AdPlaceholder 
 } from './google-adsense'
 import { ADSENSE_CONFIG } from '@/lib/config'
+import { useGoogleConsent } from './google-consent-mode'
 
 interface AdManagerProps {
   children: React.ReactNode
@@ -23,56 +24,20 @@ export function AdManager({
   adFrequency = 6 
 }: AdManagerProps) {
   const [adsEnabled, setAdsEnabled] = useState(false)
-  const [userConsent, setUserConsent] = useState<boolean | null>(null)
+  const consent = useGoogleConsent()
 
   useEffect(() => {
     // Check if ads should be enabled
     const shouldShowAds = showAds && ADSENSE_CONFIG.enabled
     setAdsEnabled(shouldShowAds)
-
-    // Check for user consent (GDPR compliance)
-    const consent = localStorage.getItem('ads-consent')
-    if (consent !== null) {
-      setUserConsent(consent === 'true')
-    }
   }, [showAds])
 
-  const handleConsent = (consent: boolean) => {
-    setUserConsent(consent)
-    localStorage.setItem('ads-consent', consent.toString())
-  }
-
-  // Show consent banner if no consent given
-  if (userConsent === null && adsEnabled) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            Táto stránka používa reklamy na poskytovanie bezplatného obsahu. 
-            Súhlasíte s ich zobrazovaním?
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleConsent(false)}
-              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
-            >
-              Odmietnuť
-            </button>
-            <button
-              onClick={() => handleConsent(true)}
-              className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Súhlasiť
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Check if ads are allowed based on Google Consent Mode
+  const adsAllowed = consent?.ad_storage === 'granted' && consent?.ad_user_data === 'granted'
 
   return (
     <AdContext.Provider value={{ 
-      adsEnabled: adsEnabled && userConsent === true,
+      adsEnabled: adsEnabled && adsAllowed,
       adFrequency 
     }}>
       {children}
