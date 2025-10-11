@@ -36,14 +36,16 @@ export default function SearchPage() {
           setTotalCount(response.length)
         } else {
           // Fallback: try to load from different categories
-          const [discoveryResponse, weeklyResponse] = await Promise.all([
+          const [discoveryResponse, weeklyResponse, communityResponse] = await Promise.all([
             ArticlesAPI.getArticlesByCategory("objav-dna", 25).catch(() => ({ articles: [] })),
             ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 25).catch(() => ({ articles: [] })),
+            ArticlesAPI.getArticlesByCategory("komunita", 25).catch(() => ({ articles: [] })),
           ])
           
           const combinedArticles = [
             ...(discoveryResponse.articles || []),
             ...(weeklyResponse.articles || []),
+            ...(communityResponse.articles || []),
           ]
           
           if (combinedArticles.length > 0) {

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Article } from '@/lib/api'
 import { formatDateShort } from '@/lib/date-utils'
 import { ArrowUp, MessageCircle, Trophy } from 'lucide-react'
+import { CategoryBadge } from '@/components/category-badge'
 
 interface CommunityArticleCardProps {
   article: Article
@@ -30,8 +31,11 @@ export function CommunityArticleCard({ article }: CommunityArticleCardProps) {
         </div>
       )}
       <div className="flex flex-col p-6 flex-grow">
-        <div className="mb-2 flex items-center justify-end text-sm text-slate-400">
-          <time dateTime={article.originalDate || article.publishedAt}>{formattedDate}</time>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <CategoryBadge category={article.category} />
+          <time dateTime={article.originalDate || article.publishedAt} className="text-sm text-slate-400">
+            {formattedDate}
+          </time>
         </div>
         <h3 className="mb-3 text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors">
           {article.title}
