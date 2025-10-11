@@ -19,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/kategoria/vysvetlenia`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
@@ -67,7 +68,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const articlePages: MetadataRoute.Sitemap = allArticles.map((article) => {
       // Use correct URL structure based on category
-      const basePath = article.category === 'tyzdenny-vyber' ? 'tyzdenny-vyber' : 'objav-dna'
+      let basePath = 'clanok' // Default for community articles
+      
+      if (article.category === 'tyzdenny-vyber') {
+        basePath = 'tyzdenny-vyber'
+      } else if (article.category === 'objav-dna') {
+        basePath = 'objav-dna'
+      }
+      // Community articles and others use 'clanok'
+      
       return {
         url: `${baseUrl}/${basePath}/${article.slug}`,
         lastModified: new Date(article.originalDate || article.publishedAt),
