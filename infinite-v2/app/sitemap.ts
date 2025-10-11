@@ -52,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Fetch articles from all categories
-    const [objavDnaResponse, komunitaResponse, detiResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, komunitaResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 100).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("komunita", 50).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 50).catch(() => ({ articles: [] })),
@@ -62,7 +62,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const allArticles = [
       ...objavDnaResponse.articles,
       ...komunitaResponse.articles,
-      ...detiResponse.articles,
       ...tyzdennyResponse.articles,
     ]
 
