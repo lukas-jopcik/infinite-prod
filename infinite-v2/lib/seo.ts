@@ -52,7 +52,7 @@ export function generateMetadata(config: SEOConfig): Metadata {
   } = config
 
   const fullTitle = `${title} | ${SITE_CONFIG.name}`
-  const fullDescription = description || SITE_CONFIG.description
+  const fullDescription = description && description.trim() ? description : SITE_CONFIG.description
   const fullUrl = url ? `${SITE_CONFIG.url}${url}` : SITE_CONFIG.url
   const fullImage = image.startsWith('http') ? image : `${SITE_CONFIG.url}${image}`
 
@@ -128,7 +128,7 @@ export function generateArticleMetadata(article: ArticleData): Metadata {
   
   return generateMetadata({
     title: article.title,
-    description: article.description,
+    description: article.description || article.content || "Objav dňa z vesmíru na Infinite",
     image: article.imageUrl,
     type: "article",
     publishedTime: article.originalDate || article.publishedAt,
