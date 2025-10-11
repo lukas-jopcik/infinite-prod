@@ -82,6 +82,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     redirect(`/objav-dna/${slug}`)
   } else if (article.category === "tyzdenny-vyber") {
     redirect(`/tyzdenny-vyber/${slug}`)
+  } else if (article.category === "komunita") {
+    redirect(`/kategoria/komunita/${slug}`)
   }
 
   return (
