@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: WeeklyPickPageProps): Promise
 
     return generateArticleMetadata({
       title: article.title,
-      description: article.perex,
+      description: article.metaDescription || article.perex,
       slug: article.slug,
       imageUrl: article.imageUrl,
       publishedAt: article.publishedAt,
