@@ -8,7 +8,7 @@ export async function GET() {
 
   try {
     // Fetch latest articles from all categories
-    const [objavDnaResponse, komunitaResponse, detiResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, komunitaResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 20).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("komunita", 10).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 10).catch(() => ({ articles: [] })),
@@ -18,7 +18,6 @@ export async function GET() {
     const allArticles = [
       ...objavDnaResponse.articles,
       ...komunitaResponse.articles,
-      ...detiResponse.articles,
       ...tyzdennyResponse.articles,
     ].sort((a, b) => 
       new Date(b.originalDate || b.publishedAt).getTime() - 
@@ -29,7 +28,15 @@ export async function GET() {
     const rssItems = allArticles.slice(0, 50).map(article => {
       const pubDate = new Date(article.originalDate || article.publishedAt).toUTCString()
       // Use correct URL based on category
-      const basePath = article.category === 'tyzdenny-vyber' ? 'tyzdenny-vyber' : 'objav-dna'
+      let basePath = 'clanok' // Default for community articles
+      
+      if (article.category === 'tyzdenny-vyber') {
+        basePath = 'tyzdenny-vyber'
+      } else if (article.category === 'objav-dna') {
+        basePath = 'objav-dna'
+      }
+      // Community articles and others use 'clanok'
+      
       const articleUrl = `${baseUrl}/${basePath}/${article.slug}`
       const imageUrl = article.imageUrl ? `${baseUrl}${article.imageUrl}` : `${baseUrl}/opengraph-image.png`
       
