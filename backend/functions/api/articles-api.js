@@ -83,18 +83,16 @@ async function getAllArticles(headers, queryParams) {
     const lastKey = queryParams?.lastKey ? JSON.parse(decodeURIComponent(queryParams.lastKey)) : null;
     
     try {
-        // Use GSI for efficient querying by type
+        // Use scan to get all published articles
         const params = {
             TableName: ARTICLES_TABLE,
-            IndexName: 'type-originalDate-index',
-            KeyConditionExpression: '#type = :type',
+            FilterExpression: '#status = :status',
             ExpressionAttributeNames: {
-                '#type': 'type'
+                '#status': 'status'
             },
             ExpressionAttributeValues: {
-                ':type': 'discovery' // Default type for all articles
+                ':status': 'published' // Only get published articles
             },
-            ScanIndexForward: false, // Sort by originalDate descending (newest first)
             Limit: limit
         };
         
@@ -104,47 +102,42 @@ async function getAllArticles(headers, queryParams) {
         
         let result;
         try {
-            result = await dynamodb.send(new QueryCommand(params));
-        } catch (gsiError) {
-            console.log('GSI not ready, falling back to scan:', gsiError.message);
-            // Fallback to scan if GSI is not ready
-            const scanParams = {
+            result = await dynamodb.send(new ScanCommand(params));
+        } catch (scanError) {
+            console.log('Scan failed, trying basic scan:', scanError.message);
+            // Fallback to basic scan
+            const basicScanParams = {
                 TableName: ARTICLES_TABLE,
-                FilterExpression: '#type = :type',
-                ExpressionAttributeNames: {
-                    '#type': 'type'
-                },
-                ExpressionAttributeValues: {
-                    ':type': 'discovery'
-                },
                 Limit: limit
             };
             
             if (lastKey) {
-                scanParams.ExclusiveStartKey = lastKey;
+                basicScanParams.ExclusiveStartKey = lastKey;
             }
             
-            result = await dynamodb.send(new ScanCommand(scanParams));
+            result = await dynamodb.send(new ScanCommand(basicScanParams));
         }
         
-        // Transform the data for frontend
-        const articles = result.Items.map(item => ({
-            id: item.articleId,
-            title: item.title,
-            slug: item.slug,
-            perex: item.perex,
-            category: item.category || 'discovery',
-            publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
-            originalDate: item.originalDate,
-            author: item.author,
-            readingTime: item.estimatedReadingTime,
-            imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-            metaTitle: item.metaTitle,
-            metaDescription: item.metaDescription,
-            type: item.type,
-            source: item.source,
-            sourceUrl: item.sourceUrl
-        }));
+        // Transform the data for frontend and sort by originalDate
+        const articles = result.Items
+            .map(item => ({
+                id: item.articleId,
+                title: item.title,
+                slug: item.slug,
+                perex: item.perex,
+                category: item.category || 'discovery',
+                publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
+                originalDate: item.originalDate,
+                author: item.author,
+                readingTime: item.estimatedReadingTime,
+                imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
+                metaTitle: item.metaTitle,
+                metaDescription: item.metaDescription,
+                type: item.type,
+                source: item.source,
+                sourceUrl: item.sourceUrl
+            }))
+            .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         
         return {
             statusCode: 200,
@@ -530,15 +523,15 @@ async function searchArticles(headers, queryParams) {
         console.log(`Searching for: "${query}", limit: ${limit}`);
         
         // Use GSI to get all articles efficiently, then filter
+        // We'll use scan with filter to get all article types
         const params = {
             TableName: ARTICLES_TABLE,
-            IndexName: 'type-originalDate-index',
-            KeyConditionExpression: '#type = :type',
+            FilterExpression: '#status = :status',
             ExpressionAttributeNames: {
-                '#type': 'type'
+                '#status': 'status'
             },
             ExpressionAttributeValues: {
-                ':type': 'discovery' // Search in discovery articles
+                ':status': 'published' // Only search published articles
             },
             ScanIndexForward: false, // Sort by originalDate descending (newest first)
             Limit: Math.min(limit * 3, 100) // Get more results to filter, but cap at 100
@@ -550,48 +543,43 @@ async function searchArticles(headers, queryParams) {
         
         let result;
         try {
-            result = await dynamodb.send(new QueryCommand(params));
-        } catch (gsiError) {
-            console.log('GSI not ready, falling back to scan:', gsiError.message);
-            // Fallback to scan if GSI is not ready
-            const scanParams = {
+            result = await dynamodb.send(new ScanCommand(params));
+        } catch (scanError) {
+            console.log('Scan failed, trying basic scan:', scanError.message);
+            // Fallback to basic scan
+            const basicScanParams = {
                 TableName: ARTICLES_TABLE,
-                FilterExpression: '#type = :type',
-                ExpressionAttributeNames: {
-                    '#type': 'type'
-                },
-                ExpressionAttributeValues: {
-                    ':type': 'discovery'
-                },
                 Limit: Math.min(limit * 3, 100)
             };
             
             if (lastKey) {
-                scanParams.ExclusiveStartKey = lastKey;
+                basicScanParams.ExclusiveStartKey = lastKey;
             }
             
-            result = await dynamodb.send(new ScanCommand(scanParams));
+            result = await dynamodb.send(new ScanCommand(basicScanParams));
         }
         
-        // Transform and filter results
-        const allArticles = result.Items.map(item => ({
-            id: item.articleId,
-            title: item.title,
-            slug: item.slug,
-            perex: item.perex,
-            category: item.category || 'discovery',
-            publishedAt: item.originalDate || item.publishedAt,
-            originalDate: item.originalDate,
-            author: item.author,
-            readingTime: item.estimatedReadingTime,
-            imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-            metaTitle: item.metaTitle,
-            metaDescription: item.metaDescription,
-            type: item.type,
-            source: item.source,
-            sourceUrl: item.sourceUrl,
-            tags: item.tags || [] // Pridať tags pre search
-        }));
+        // Transform and filter results, sort by originalDate
+        const allArticles = result.Items
+            .map(item => ({
+                id: item.articleId,
+                title: item.title,
+                slug: item.slug,
+                perex: item.perex,
+                category: item.category || 'discovery',
+                publishedAt: item.originalDate || item.publishedAt,
+                originalDate: item.originalDate,
+                author: item.author,
+                readingTime: item.estimatedReadingTime,
+                imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
+                metaTitle: item.metaTitle,
+                metaDescription: item.metaDescription,
+                type: item.type,
+                source: item.source,
+                sourceUrl: item.sourceUrl,
+                tags: item.tags || [] // Pridať tags pre search
+            }))
+            .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         
         // Client-side filtering for search (case-insensitive)
         const searchLower = query.toLowerCase();
