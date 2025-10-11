@@ -10,6 +10,9 @@ export const metadata = generateSEO({
   description: "Kurátorovaný výber najlepších vesmírnych objavov a článkov z tohto týždňa.",
 })
 
+// Disable static generation for this page to avoid build issues
+export const dynamic = 'force-dynamic'
+
 export default async function WeeklyPicksPage() {
   // Fetch real articles from the tyzdenny-vyber category
   let weeklyPicks: any[] = []
@@ -23,11 +26,7 @@ export default async function WeeklyPicksPage() {
     error = 'Nepodarilo sa načítať týždenný výber'
   }
 
-  const currentWeek = new Date().toLocaleDateString("sk-SK", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
+  const currentWeek = new Date().toISOString().split('T')[0]
 
   return (
     <div className="flex flex-col">

@@ -1,7 +1,0 @@
-<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="225" fill="#1f1f1f"/>
-  <rect x="50" y="50" width="300" height="125" fill="#2d2d2d" stroke="#404040" stroke-width="2"/>
-  <circle cx="200" cy="112.5" r="20" fill="#404040"/>
-  <path d="M190 102.5L200 112.5L210 102.5" stroke="#666" stroke-width="2" fill="none"/>
-  <text x="200" y="180" text-anchor="middle" fill="#666" font-family="Arial, sans-serif" font-size="14">Obrázok sa načítava...</text>
-</svg>
