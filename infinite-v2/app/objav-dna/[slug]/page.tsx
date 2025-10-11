@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: DiscoveryPageProps): Promise<
       category: article.category,
       tags: article.tags,
     })
-  } catch {
+  } catch (error) {
     return {
       title: "Objav nenájdený | Infinite",
       description: "Požadovaný objav nebol nájdený.",
