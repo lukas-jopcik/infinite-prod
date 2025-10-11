@@ -254,16 +254,11 @@ export default async function CommunityArticlePage({ params }: CommunityPageProp
           url={`https://infinite.sk/kategoria/komunita/${article.slug}`}
         />
 
-        {/* Ad Container */}
-        <AdContainer position="article" />
+        {/* Newsletter CTA */}
+        <div className="mt-12 rounded-2xl border border-border bg-gradient-to-br from-accent/5 to-accent/10 p-8 text-center">
+          <NewsletterSignup />
+        </div>
       </article>
-
-      {/* Newsletter CTA */}
-      <div className="mt-12 rounded-2xl border border-border bg-gradient-to-br from-accent/5 to-accent/10 p-8 text-center">
-        <h3 className="mb-2 text-2xl font-bold text-foreground">Nenechaj si ujsť žiadny objav</h3>
-        <p className="mb-6 text-muted-foreground">Dostávaj Objav dňa priamo do svojej schránky každé ráno.</p>
-        <NewsletterSignup />
-      </div>
 
       {/* Structured Data */}
       <ArticleStructuredData 
