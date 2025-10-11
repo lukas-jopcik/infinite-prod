@@ -18,6 +18,14 @@ export interface Article {
   tags: string[];
   source?: string;
   sourceUrl?: string;
+  communityEngagement?: {
+    upvotes?: number;
+    comments?: number;
+    awards?: number;
+    engagementScore?: number;
+  };
+  selectedExcerpt?: string;
+  discussionHighlights?: string[];
 }
 
 export interface ArticleDetail extends Article {

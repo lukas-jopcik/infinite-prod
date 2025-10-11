@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArticlesAPI, Article } from "@/lib/api"
 import { ArticleCard } from "@/components/article-card"
+import { CommunityArticleCard } from "@/components/community-article-card"
 import { Pagination } from "@/components/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -129,19 +130,32 @@ export function CategoryArticles({
             </div>
           ))
         ) : (
-          articles && articles.length > 0 ? articles.map((article) => (
-            <ArticleCard 
-              key={article.slug} 
-              slug={article.slug}
-              title={article.title}
-              perex={article.perex}
-              category={article.category}
-              date={article.originalDate || article.publishedAt}
-              image={article.imageUrl || "/placeholder.svg"}
-              imageAlt={article.title}
-              type={article.type as "article" | "discovery"}
-            />
-          )) : (
+          articles && articles.length > 0 ? articles.map((article) => {
+            // Use CommunityArticleCard for community articles
+            if (article.category === 'komunita') {
+              return (
+                <CommunityArticleCard 
+                  key={article.slug} 
+                  article={article}
+                />
+              )
+            }
+            
+            // Use regular ArticleCard for other categories
+            return (
+              <ArticleCard 
+                key={article.slug} 
+                slug={article.slug}
+                title={article.title}
+                perex={article.perex}
+                category={article.category}
+                date={article.originalDate || article.publishedAt}
+                image={article.imageUrl || "/placeholder.svg"}
+                imageAlt={article.title}
+                type={article.type as "article" | "discovery"}
+              />
+            )
+          }) : (
             <div className="col-span-full rounded-2xl border border-border bg-card p-12 text-center">
               <p className="text-lg text-muted-foreground">Žiadne články na zobrazenie.</p>
             </div>

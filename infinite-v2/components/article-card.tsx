@@ -23,6 +23,8 @@ export function ArticleCard({ slug, title, perex, category, date, image, imageAl
   const getHref = () => {
     if (category === 'tyzdenny-vyber') {
       return `/tyzdenny-vyber/${slug}`
+    } else if (category === 'komunita') {
+      return `/kategoria/komunita/${slug}`
     } else if (type === "discovery") {
       return `/objav-dna/${slug}`
     } else {

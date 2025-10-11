@@ -52,13 +52,13 @@ exports.handler = async (event) => {
                 rawContentItems = [specificItem];
             }
         } else {
-            // Get raw content items that need processing (APOD content with status: "raw")
+            // Get raw content items that need processing (APOD, ESA Hubble, and Community content with status: "raw")
             const apodItems = await getRawContentForProcessing();
             
             // Also get ESA Hubble content with pending status
             const esaHubbleItems = await getESAHubbleContentForProcessing();
             
-            // Combine both types of content
+            // Combine all types of content
             rawContentItems = [...apodItems, ...esaHubbleItems];
         }
         
@@ -319,12 +319,17 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
         // Prepare the enhanced prompt based on objav-dna-slovenstina.md
         const prompt = createEnhancedPrompt(rawItem);
         
+        // Determine system message based on category
+        const systemMessage = rawItem.category === 'komunita' 
+            ? "Si expertný slovenský astronomický novinár a komunita moderátor. Tvoja úloha je vytvoriť zaujímavý, hravý a komunita-orientovaný článok o astronómii v slovenčine s emoji a citátmi z diskusie. Buď hravý, ale stále informativný!"
+            : "Si expertný astronóm a skvelý slovenský spisovateľ. Tvoja úloha je vytvoriť zaujímavý, vedecky presný a ľahko zrozumiteľný článok o astronómii v slovenčine.";
+        
         const requestBody = {
             model: OPENAI_MODEL,
             messages: [
                 {
                     role: "system",
-                    content: "Si expertný astronóm a skvelý slovenský spisovateľ. Tvoja úloha je vytvoriť zaujímavý, vedecky presný a ľahko zrozumiteľný článok o astronómii v slovenčine."
+                    content: systemMessage
                 },
                 {
                     role: "user",
@@ -332,7 +337,7 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
                 }
             ],
             max_tokens: 6000,
-            temperature: 0.7,
+            temperature: rawItem.category === 'komunita' ? 0.8 : 0.7, // Higher creativity for community content
             top_p: 1,
             frequency_penalty: 0.1,
             presence_penalty: 0.1
@@ -374,9 +379,12 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
  */
 function createEnhancedPrompt(rawItem) {
     const isWeeklyPick = rawItem.category === 'tyzdenny-vyber';
+    const isCommunity = rawItem.category === 'komunita';
     
     if (isWeeklyPick) {
         return createWeeklyPickPrompt(rawItem);
+    } else if (isCommunity) {
+        return createCommunityPrompt(rawItem);
     } else {
         return createDailyDiscoveryPrompt(rawItem);
     }
@@ -586,6 +594,7 @@ function parseGeneratedContent(generatedContent, rawItem) {
 function validateGeneratedContent(generatedContent, category) {
     const errors = [];
     const isWeeklyPick = category === 'tyzdenny-vyber';
+    const isCommunity = category === 'komunita';
     
     // Check required fields
     if (!generatedContent.metaTitle || generatedContent.metaTitle.length > 60) {
@@ -610,6 +619,11 @@ function validateGeneratedContent(generatedContent, category) {
         if (!generatedContent.sections || generatedContent.sections.length !== 4) {
             errors.push('Weekly picks must have exactly 4 sections');
         }
+    } else if (isCommunity) {
+        // Community articles should have exactly 4 sections
+        if (!generatedContent.sections || generatedContent.sections.length !== 4) {
+            errors.push('Community articles must have exactly 4 sections');
+        }
     } else {
         // Daily discoveries should have exactly 5 sections
         if (!generatedContent.sections || generatedContent.sections.length !== 5) {
@@ -617,7 +631,8 @@ function validateGeneratedContent(generatedContent, category) {
         }
     }
     
-    if (!generatedContent.faq || generatedContent.faq.length < 3) {
+    // FAQ is optional for community articles
+    if (!isCommunity && (!generatedContent.faq || generatedContent.faq.length < 3)) {
         errors.push('Must have at least 3 FAQ items');
     }
     
@@ -626,7 +641,7 @@ function validateGeneratedContent(generatedContent, category) {
         generatedContent.sections.reduce((sum, section) => sum + section.content.length, 0);
     
     // Different minimum lengths for different content types
-    const minLength = isWeeklyPick ? 1500 : 2000;
+    const minLength = isWeeklyPick ? 1500 : isCommunity ? 1200 : 2000;
     if (totalContentLength < minLength) {
         errors.push(`Total content length is too short (min ${minLength} characters, got ${totalContentLength})`);
     }
@@ -817,7 +832,8 @@ function createArticleRecord(rawItem, generatedContent, processedImages) {
     
     // Determine category and type based on raw content
     const category = rawItem.category || 'objav-dna';
-    const type = category === 'tyzdenny-vyber' ? 'weekly-pick' : 'discovery';
+    const type = category === 'tyzdenny-vyber' ? 'weekly-pick' : 
+                 category === 'komunita' ? 'community' : 'discovery';
     
     return {
         articleId: articleId,
@@ -827,7 +843,7 @@ function createArticleRecord(rawItem, generatedContent, processedImages) {
         metaDescription: generatedContent.metaDescription,
         perex: generatedContent.perex,
         content: generatedContent.sections,
-        faq: generatedContent.faq,
+        faq: generatedContent.faq || [],
         keywords: generatedContent.keywords || [],
         estimatedReadingTime: generatedContent.estimatedReadingTime || '5 minút',
         category: category,
@@ -843,7 +859,14 @@ function createArticleRecord(rawItem, generatedContent, processedImages) {
         rawContentId: rawItem.contentId,
         environment: ENVIRONMENT,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        
+        // Community-specific fields
+        ...(category === 'komunita' && {
+            communityEngagement: rawItem.communityEngagement,
+            selectedExcerpt: rawItem.selectedExcerpt,
+            discussionHighlights: rawItem.discussionHighlights
+        })
     };
 }
 
@@ -1067,12 +1090,88 @@ async function getESAHubbleContentForProcessing() {
     }
 }
 
+/**
+ * Create community prompt for Reddit-based articles
+ */
+function createCommunityPrompt(rawItem) {
+    return `Si expertný slovenský astronomický novinár a komunita moderátor. Tvoja úloha je vytvoriť zaujímavý článok pre sekciu "Komunita" na základe obsahu z Reddit alebo iných portálov.
+
+**VSTUPNÉ ÚDAJE:**
+- Názov: ${rawItem.title}
+- URL: ${rawItem.url}
+- Zdroj: ${rawItem.source}
+- Dátum: ${rawItem.date || new Date().toISOString().split('T')[0]}
+- Pôvodný obsah: ${rawItem.content || rawItem.description || 'Obsah z komunity'}
+- Úryvok z diskusie: ${rawItem.selectedExcerpt || 'Vybraný úryvok z diskusie'}
+- Upvotes: ${rawItem.communityEngagement?.upvotes || 0}
+- Komentáre: ${rawItem.communityEngagement?.comments || 0}
+- Engagement skóre: ${rawItem.communityEngagement?.engagementScore || 0}
+
+**Štýl a jazyk (KOMUNITA):**
+- TÓN: Hravý, komunita-orientovaný, interaktívny
+- ŠTYL: Menej formálny, viac konverzačný
+- POUŽÍVAJ EMOJI A ZAUJÍMAVÉ FORMÁTOVANIE 🚀✨🌟
+- Pridaj citáty z pôvodných komentárov (v uvozovkách)
+- Vysvetľuj veci jednoducho, ako by si to povedal kamarátovi
+
+**Požiadavky na článok:**
+1. **Meta title** (max 60 znakov): Zaujímavý, SEO-optimalizovaný názov VÝLUČNE V SLOVENČINE
+2. **Meta description** (max 160 znakov): Krátky popis článku VÝLUČNE V SLOVENČINE
+3. **H1 názov**: Hlavný názov článku VÝLUČNE V SLOVENČINE s emoji
+4. **Perex** (MINIMÁLNE 150 znakov): Úvodný text, ktorý zaujme čitateľa
+5. **4 H2 sekcií** s podrobným obsahom (každá sekcia MINIMÁLNE 300 znakov):
+   - **Čo sa deje 🚀** (MINIMÁLNE 300 znakov) - vysvetli hlavný obsah
+   - **Reakcia komunity 💬** (MINIMÁLNE 300 znakov) - citáty z komentárov
+   - **Najzaujímavejšie komentáre ⭐** (MINIMÁLNE 300 znakov) - top komentáre
+   - **Prečo je to dôležité 🌟** (MINIMÁLNE 300 znakov) - význam a kontext
+
+**DÔLEŽITÉ:**
+- Celkový obsah MUSÍ mať aspoň 1200 znakov!
+- Použij citáty z komentárov v uvozovkách
+- Pridaj emoji do nadpisov a textu
+- Buď hravý, ale stále informativný
+- Vysvetľuj astronomické pojmy jednoducho
+
+**Formát výstupu (JSON):**
+\`\`\`json
+{
+  "metaTitle": "Názov pre SEO",
+  "metaDescription": "Popis pre SEO",
+  "h1Title": "Hlavný názov s emoji",
+  "perex": "Úvodný text...",
+  "sections": [
+    {
+      "title": "Čo sa deje 🚀",
+      "content": "Obsah sekcie..."
+    },
+    {
+      "title": "Reakcia komunity 💬", 
+      "content": "Obsah s citátmi..."
+    },
+    {
+      "title": "Najzaujímavejšie komentáre ⭐",
+      "content": "Obsah s komentármi..."
+    },
+    {
+      "title": "Prečo je to dôležité 🌟",
+      "content": "Obsah o význame..."
+    }
+  ],
+  "keywords": ["kľúčové", "slová", "pre", "seo"],
+  "estimatedReadingTime": "5 minút"
+}
+\`\`\`
+
+Vytvor zaujímavý, hravý článok, ktorý bude mať úspech v komunite! 🚀`;
+}
+
 // Export functions for testing
 module.exports = {
     handler: exports.handler,
     getOpenAIApiKey,
     getRawContentForProcessing,
     generateSlovakArticle,
+    createCommunityPrompt,
     validateGeneratedContent,
     createArticleRecord,
     storeArticle,
