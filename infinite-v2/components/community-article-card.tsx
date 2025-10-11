@@ -12,7 +12,9 @@ interface CommunityArticleCardProps {
 
 export function CommunityArticleCard({ article }: CommunityArticleCardProps) {
   const href = `/clanok/${article.slug}`
-  const formattedDate = formatDateShort(article.originalDate || article.publishedAt)
+  // Use consistent date formatting to avoid hydration mismatch
+  const dateString = article.originalDate || article.publishedAt
+  const formattedDate = dateString ? new Date(dateString).toLocaleDateString('sk-SK') : ''
   const { upvotes, comments, awards, engagementScore } = article.communityEngagement || {}
 
   return (

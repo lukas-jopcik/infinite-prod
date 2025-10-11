@@ -33,18 +33,13 @@ export function formatDateShort(date: string | Date): string {
     return 'Neplatný dátum';
   }
   
-  // Short format for cards and compact displays
-  if (typeof window !== 'undefined') {
-    return dateObj.toLocaleDateString('sk-SK', {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  }
-  
-  // Fallback for server-side rendering
-  return dateObj.toISOString().split('T')[0];
+  // Use consistent format for both server and client to avoid hydration mismatch
+  return dateObj.toLocaleDateString('sk-SK', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
 }
 
 export function formatDateForDateTime(date: string | Date): string {
