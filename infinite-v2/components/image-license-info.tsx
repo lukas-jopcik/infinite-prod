@@ -6,8 +6,14 @@ interface ImageLicenseInfoProps {
 }
 
 export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
-  // Only show if we have license information
-  if (!article.imageLicense && !article.imageCreditText) {
+  // Show for all articles that have any license information
+  // For APOD/weekly: show all available fields
+  // For community: show Pexels license info
+  // For APOD/weekly without license fields, show based on source
+  const hasLicenseData = article.imageLicense || article.imageCreditText || article.imageCopyrightNotice
+  const isApodOrWeekly = article.source === 'apod-rss' || article.source === 'esa-hubble' || article.source === 'esa-hubble-potw'
+  
+  if (!hasLicenseData && !isApodOrWeekly) {
     return null
   }
 
@@ -35,6 +41,24 @@ export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
           </div>
         )}
 
+        {/* Default license info for APOD/Weekly without license fields */}
+        {!hasLicenseData && isApodOrWeekly && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Licencia:</span>
+              <span className="text-foreground">
+                {article.source === 'apod-rss' ? 'Public Domain (NASA)' : 'ESA/Hubble License'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Zdroj:</span>
+              <span className="text-foreground">
+                {article.source === 'apod-rss' ? 'NASA Astronomy Picture of the Day' : 'ESA/Hubble Space Telescope'}
+              </span>
+            </div>
+          </>
+        )}
+
         {/* Photographer */}
         {article.imagePhotographer && article.imagePhotographerUrl && (
           <div className="flex items-center gap-2">
@@ -55,7 +79,7 @@ export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
         {article.imageAcquireLicensePage && (
           <div className="flex items-center gap-2">
             <Globe className="h-3 w-3" />
-            <span className="font-medium">Licenčná stránka:</span>
+            <span className="font-medium">Originál nájdete tu:</span>
             <a
               href={article.imageAcquireLicensePage}
               target="_blank"
@@ -73,6 +97,21 @@ export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Copyright className="h-3 w-3" />
               <span>{article.imageCopyrightNotice}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Default copyright for APOD/Weekly without copyright notice */}
+        {!article.imageCopyrightNotice && isApodOrWeekly && (
+          <div className="pt-2 border-t border-border/30">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Copyright className="h-3 w-3" />
+              <span>
+                {article.source === 'apod-rss' 
+                  ? '© NASA / Public Domain' 
+                  : '© ESA/Hubble & NASA'
+                }
+              </span>
             </div>
           </div>
         )}

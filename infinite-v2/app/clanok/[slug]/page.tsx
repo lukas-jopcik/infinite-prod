@@ -198,28 +198,46 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               className="object-cover"
             />
             </div>
-            {/* Image Source */}
-            {article.source && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <ExternalLink className="h-4 w-4" />
-                <span>Zdroj: </span>
-                {article.sourceUrl ? (
-                  <a 
-                    href={article.sourceUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-accent hover:text-accent/80 underline"
-                  >
-                    {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
-                  </a>
-                ) : (
-                  <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
-                )}
+            
+            {/* Image Source and Illustrative Notice */}
+            <div className="mt-3 flex items-center justify-between">
+              {/* Left side - Illustrative photo notice with dynamic Pexels source */}
+              <div className="text-xs text-muted-foreground">
+                Fotografia je ilustračná | Zdroj: {article.imageCreditText || 'Photo by Pexels Contributor on Pexels'}
+              </div>
+              
+              {/* Right side - Official Reddit source (only for community articles) */}
+              {article.source && article.category === 'komunita' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Oficiálny zdroj: </span>
+                  {article.sourceUrl ? (
+                    <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
+                      {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
+                    </a>
+                  ) : (
+                    <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* For non-community articles, show only the official source on the right */}
+            {article.category !== 'komunita' && article.source && (
+              <div className="mt-3 flex items-center justify-end">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Oficiálny zdroj: </span>
+                  {article.sourceUrl ? (
+                    <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
+                      {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
+                    </a>
+                  ) : (
+                    <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
+                  )}
+                </div>
               </div>
             )}
-
-            {/* Image License Information */}
-            <ImageLicenseInfo article={article} />
           </div>
 
           {/* Article Ad */}
@@ -299,6 +317,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <p className="mb-6 text-muted-foreground">Prihlás sa na odber Objavu dňa.</p>
             <NewsletterSignup />
           </div>
+          
+          {/* Image License Information - moved to end of article */}
+          <ImageLicenseInfo article={article} />
         </article>
 
         {/* Related Articles */}

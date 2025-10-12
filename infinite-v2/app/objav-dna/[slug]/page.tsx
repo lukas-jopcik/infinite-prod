@@ -202,8 +202,6 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
             </div>
           )}
 
-          {/* Image License Information */}
-          <ImageLicenseInfo article={article} />
         </div>
 
         {/* Description */}
@@ -288,6 +286,9 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
           <p className="mb-6 text-muted-foreground">Dostávaj Objav dňa priamo do svojej schránky každé ráno.</p>
           <NewsletterSignup />
         </div>
+
+        {/* Image License Information - moved to end of article */}
+        <ImageLicenseInfo article={article} />
       </article>
 
       {/* Related Discoveries */}

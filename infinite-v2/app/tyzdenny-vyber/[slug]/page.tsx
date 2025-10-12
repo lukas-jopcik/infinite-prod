@@ -206,8 +206,6 @@ export default async function WeeklyPickPage({ params }: WeeklyPickPageProps) {
               </div>
             )}
 
-            {/* Image License Information */}
-            <ImageLicenseInfo article={article} />
           </div>
 
           {/* Article Ad */}
@@ -287,6 +285,9 @@ export default async function WeeklyPickPage({ params }: WeeklyPickPageProps) {
             <p className="mb-6 text-muted-foreground">Prihlás sa na odber a dostávaj najlepšie články každý týždeň.</p>
             <NewsletterSignup />
           </div>
+
+          {/* Image License Information - moved to end of article */}
+          <ImageLicenseInfo article={article} />
         </article>
 
         {/* Related Articles */}
