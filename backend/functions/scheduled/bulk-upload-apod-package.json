@@ -1,0 +1,13 @@
+{
+  "name": "bulk-upload-apod",
+  "version": "1.0.0",
+  "description": "Lambda function for bulk uploading APOD archive data to DynamoDB",
+  "main": "bulk-upload-apod.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

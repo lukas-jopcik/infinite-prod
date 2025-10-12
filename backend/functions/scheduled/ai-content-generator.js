@@ -1393,12 +1393,42 @@ async function updateRawContentStatus(contentId, source, status) {
 
 /**
  * Check if article already exists for raw content (idempotency check)
+ * For Reddit posts, check by Reddit post ID to prevent duplicates from different contentId formats
  */
 async function checkExistingArticle(contentId, source) {
     try {
         console.log(`checkExistingArticle called with contentId: ${contentId}, source: ${source}`);
         
-        // Try GSI first, fallback to scan if GSI is not ready
+        // For Reddit posts, extract the Reddit post ID and check for any existing articles from the same post
+        if (contentId.startsWith('reddit-')) {
+            const redditPostId = contentId.replace('reddit-', '').split('-')[0]; // Extract just the Reddit post ID
+            console.log(`Checking for existing articles from Reddit post: ${redditPostId}`);
+            
+            // Scan for any articles that have rawContentId starting with this Reddit post ID
+            const scanParams = {
+                TableName: ARTICLES_TABLE,
+                FilterExpression: 'begins_with(rawContentId, :redditPrefix) AND #source = :source',
+                ExpressionAttributeNames: {
+                    '#source': 'source'
+                },
+                ExpressionAttributeValues: {
+                    ':redditPrefix': `reddit-${redditPostId}`,
+                    ':source': source
+                },
+                Limit: 1
+            };
+            
+            console.log('Scanning for existing Reddit article with params:', JSON.stringify(scanParams, null, 2));
+            const result = await dynamodb.send(new ScanCommand(scanParams));
+            console.log(`Reddit post scan result: ${result.Items ? result.Items.length : 0} items found`);
+            
+            if (result.Items && result.Items.length > 0) {
+                console.log(`Found existing article from Reddit post ${redditPostId}: ${result.Items[0].title?.S}`);
+                return result.Items[0];
+            }
+        }
+        
+        // For non-Reddit content or if no Reddit match found, use original logic
         let result;
         try {
             const params = {
