@@ -1,5 +1,84 @@
 import type { Metadata } from "next"
 
+/**
+ * Generate a proper meta description from content
+ */
+export function generateMetaDescription(content: string, maxLength: number = 160): string {
+  if (!content || content.trim().length === 0) {
+    return "Objav dňa z vesmíru na Infinite - denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.";
+  }
+  
+  // Clean the content - remove HTML tags and extra whitespace
+  const cleanContent = content
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&[^;]+;/g, ' ') // Replace HTML entities
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim();
+  
+  // If content is shorter than max length, use it as is
+  if (cleanContent.length <= maxLength) {
+    return cleanContent;
+  }
+  
+  // Find the last complete sentence within the limit
+  const truncated = cleanContent.substring(0, maxLength);
+  const lastSentenceEnd = Math.max(
+    truncated.lastIndexOf('.'),
+    truncated.lastIndexOf('!'),
+    truncated.lastIndexOf('?')
+  );
+  
+  if (lastSentenceEnd > maxLength * 0.7) { // If we found a sentence end in the last 30%
+    return truncated.substring(0, lastSentenceEnd + 1);
+  }
+  
+  // Otherwise, truncate at word boundary
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > maxLength * 0.8) { // If we found a space in the last 20%
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  
+  // Final fallback - just truncate and add ellipsis
+  return truncated.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * Get the best available meta description for an article
+ */
+export function getArticleMetaDescription(article: {
+  metaDescription?: string;
+  perex?: string;
+  content?: Array<{ content?: string }>;
+}, category: string = 'objav-dna'): string {
+  // First try the dedicated meta description
+  if (article.metaDescription && article.metaDescription.trim().length > 0) {
+    return article.metaDescription;
+  }
+  
+  // Then try the perex
+  if (article.perex && article.perex.trim().length > 0) {
+    return generateMetaDescription(article.perex);
+  }
+  
+  // Then try the first section content
+  if (article.content && article.content.length > 0) {
+    const firstSection = article.content[0];
+    if (firstSection && firstSection.content) {
+      return generateMetaDescription(firstSection.content);
+    }
+  }
+  
+  // Final fallback based on category
+  switch (category) {
+    case 'tyzdenny-vyber':
+      return "Týždenný výber z vesmíru na Infinite - najzaujímavejšie objavy a udalosti z astronómie.";
+    case 'komunita':
+      return "Komunitný článok o vesmíre na Infinite - diskusie a názory astronomických nadšencov.";
+    default:
+      return "Objav dňa z vesmíru na Infinite - denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.";
+  }
+}
+
 export interface ArticleData {
   title: string
   description: string
@@ -126,9 +205,22 @@ export function generateArticleMetadata(article: ArticleData): Metadata {
   // Use correct URL based on category
   const basePath = article.category === 'tyzdenny-vyber' ? 'tyzdenny-vyber' : 'objav-dna'
   
+  // Create a better fallback for meta description
+  let metaDescription = article.description;
+  
+  // If no meta description, try to create one from content
+  if (!metaDescription || metaDescription.trim().length === 0) {
+    if (article.content && typeof article.content === 'string') {
+      metaDescription = generateMetaDescription(article.content);
+    } else {
+      // Final fallback
+      metaDescription = "Objav dňa z vesmíru na Infinite - denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.";
+    }
+  }
+  
   return generateMetadata({
     title: article.title,
-    description: article.description || article.content || "Objav dňa z vesmíru na Infinite",
+    description: metaDescription,
     image: article.imageUrl,
     type: "article",
     publishedTime: article.originalDate || article.publishedAt,

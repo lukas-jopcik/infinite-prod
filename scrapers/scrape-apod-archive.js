@@ -123,7 +123,7 @@ class APODArchiveScraper {
             
             entries.push({
                 date: date,
-                title: title.trim(),
+                title: title.trim().replace(/<[^>]*>/g, ''), // Clean HTML tags from title
                 url: apodUrl,
                 year: parseInt(date.split('-')[0])
             });
@@ -213,7 +213,7 @@ class APODArchiveScraper {
         // Look for the main image - try multiple patterns
         let match;
         
-        // Pattern 1: <a href="image/..."
+        // Pattern 1: <a href="image/..." (most common)
         match = html.match(/<a href="(image\/[^"]+\.jpg)"/);
         if (match) {
             return `https://apod.nasa.gov/apod/${match[1]}`;
@@ -247,33 +247,54 @@ class APODArchiveScraper {
             return `https://apod.nasa.gov/apod/${hdTextMatch[1]}`;
         }
         
+        // For now, return null as HD URLs are not always available
         return null;
     }
 
     extractExplanation(html) {
-        // Extract the explanation text between <p> tags
-        const explanationMatch = html.match(/<p[^>]*>(.*?)<\/p>/s);
+        // Extract the explanation text after "Explanation:" tag
+        const explanationMatch = html.match(/<b>\s*Explanation:\s*<\/b>\s*(.*?)(?=<p>\s*<center>|<hr>|$)/s);
         if (explanationMatch) {
-            return explanationMatch[1]
+            let explanation = explanationMatch[1]
                 .replace(/<[^>]*>/g, '') // Remove HTML tags
                 .replace(/\s+/g, ' ')    // Normalize whitespace
                 .trim();
+            
+            // Clean up common artifacts
+            explanation = explanation
+                .replace(/\s*Tomorrow's picture:.*$/, '') // Remove "Tomorrow's picture" text
+                .replace(/\s*<center>.*$/, '') // Remove any remaining center tags
+                .trim();
+            
+            return explanation.length > 0 ? explanation : null;
         }
         
         return null;
     }
 
     extractCopyright(html) {
-        // Look for copyright information
+        // Look for copyright information - try multiple patterns
+        
+        // Pattern 1: "Image Credit:" or "Image Color Credit:"
+        const creditMatch = html.match(/<b>\s*Image\s+(?:Color\s+)?Credit:\s*<\/b>\s*(.*?)(?=<br>|<p>|$)/s);
+        if (creditMatch) {
+            let credit = creditMatch[1]
+                .replace(/<[^>]*>/g, '') // Remove HTML tags
+                .replace(/\s+/g, ' ')    // Normalize whitespace
+                .trim();
+            return credit.length > 0 ? credit : null;
+        }
+        
+        // Pattern 2: "Copyright" text
         const copyrightMatch = html.match(/Copyright[^<]*<[^>]*>([^<]+)<\/[^>]*>/i);
         if (copyrightMatch) {
             return copyrightMatch[1].trim();
         }
         
-        // Alternative pattern
-        const altCopyrightMatch = html.match(/Image Credit[^<]*<[^>]*>([^<]+)<\/[^>]*>/i);
-        if (altCopyrightMatch) {
-            return altCopyrightMatch[1].trim();
+        // Pattern 3: Look for author names in links
+        const authorMatch = html.match(/<a[^>]*>([^<]+)<\/a>\s*&amp;\s*<a[^>]*>([^<]+)<\/a>/);
+        if (authorMatch) {
+            return `${authorMatch[1]} & ${authorMatch[2]}`;
         }
         
         return null;

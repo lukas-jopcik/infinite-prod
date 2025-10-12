@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import Image from "next/image"
 import { ArticlesAPI, Article, ArticleDetail } from "@/lib/api"
-import { generateArticleMetadata } from "@/lib/seo"
+import { generateArticleMetadata, getArticleMetaDescription } from "@/lib/seo"
 import { ArticleCard } from "@/components/article-card"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { NewsletterSignup } from "@/components/newsletter-signup"
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: DiscoveryPageProps): Promise<
 
     return generateArticleMetadata({
       title: article.title,
-      description: article.metaDescription || article.perex,
+      description: getArticleMetaDescription(article, article.category),
       slug: article.slug,
       imageUrl: article.imageUrl,
       publishedAt: article.publishedAt,

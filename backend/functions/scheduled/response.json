@@ -1,1 +1,1 @@
-{"statusCode":200,"body":"{\"message\":\"No raw content items found for processing\",\"processedCount\":0}"}
+{"statusCode":200,"body":"{\"success\":true,\"totalScanned\":83,\"totalNeedsUpdate\":0,\"totalUpdated\":0,\"totalSkipped\":83}"}
