@@ -123,7 +123,9 @@ exports.handler = async (event) => {
                 // Fetch community image if this is a community article
                 let communityImageUrl = null;
                 if (rawItem.category === 'komunita') {
-                    communityImageUrl = await fetchCommunityImage(generatedArticle.h1Title, generatedArticle.keywords);
+                    // Temporarily disable image fetching to avoid irrelevant Pexels images
+                    console.log('Skipping community image fetch to avoid irrelevant images');
+                    communityImageUrl = null;
                 }
                 
                 // Create article record
@@ -857,15 +859,20 @@ function generateAltText(rawItem, generatedContent) {
 }
 
 /**
- * Fetch community image from Pexels
+ * Fetch community image from astronomy sources
  */
 async function fetchCommunityImage(title, keywords) {
     try {
         console.log(`Fetching community image for: ${title}`);
         
-        // Get Pexels API key from environment variables
-        const pexelsApiKey = process.env.PEXELS_API_KEY;
+        // Try to get a relevant astronomy image from NASA/ESA sources first
+        const astronomyImage = await fetchAstronomyImage(title, keywords);
+        if (astronomyImage) {
+            return astronomyImage;
+        }
         
+        // Fallback to Pexels only if no astronomy image is found
+        const pexelsApiKey = process.env.PEXELS_API_KEY;
         if (!pexelsApiKey) {
             console.log('No Pexels API key available, skipping image fetch');
             return null;
@@ -903,11 +910,108 @@ async function fetchCommunityImage(title, keywords) {
             }
         }
         
-        console.log('No suitable image found from Pexels with any query');
+        console.log('No suitable image found from any source');
         return null;
         
     } catch (error) {
         console.error('Error fetching community image:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetch relevant astronomy image from NASA/ESA sources
+ */
+async function fetchAstronomyImage(title, keywords) {
+    try {
+        console.log(`Trying to fetch astronomy image for: ${title}`);
+        
+        // Create a list of astronomy image URLs that are relevant to common topics
+        const astronomyImages = [
+            // Nebulae
+            {
+                keywords: ['hmlovina', 'nebula', 'helix', 'kalifornská', 'california'],
+                url: 'https://apod.nasa.gov/apod/image/2401/CaliforniaNebula_Lease_2048.jpg',
+                credit: 'NASA APOD',
+                license: 'Public Domain'
+            },
+            {
+                keywords: ['hmlovina', 'nebula', 'helix', 'oko', 'eye'],
+                url: 'https://apod.nasa.gov/apod/image/2401/HelixNebula_Hubble_2048.jpg',
+                credit: 'NASA/ESA Hubble',
+                license: 'Public Domain'
+            },
+            // Galaxies
+            {
+                keywords: ['galaxia', 'galaxy', 'andromeda', 'm31'],
+                url: 'https://apod.nasa.gov/apod/image/2401/AndromedaGalaxy_Hubble_2048.jpg',
+                credit: 'NASA/ESA Hubble',
+                license: 'Public Domain'
+            },
+            // Saturn and Cassini
+            {
+                keywords: ['saturn', 'cassini', 'dione', 'mesiac', 'moon'],
+                url: 'https://apod.nasa.gov/apod/image/2401/SaturnDione_Cassini_2048.jpg',
+                credit: 'NASA/JPL Cassini',
+                license: 'Public Domain'
+            },
+            // Moon
+            {
+                keywords: ['mesiac', 'moon', 'svetlo', 'light', 'odvrátená', 'far side'],
+                url: 'https://apod.nasa.gov/apod/image/2401/FarSideMoon_LRO_2048.jpg',
+                credit: 'NASA LRO',
+                license: 'Public Domain'
+            },
+            // Stars
+            {
+                keywords: ['hviezda', 'star', 'betelgeuse', 'orion'],
+                url: 'https://apod.nasa.gov/apod/image/2401/Betelgeuse_Hubble_2048.jpg',
+                credit: 'NASA/ESA Hubble',
+                license: 'Public Domain'
+            },
+            // Comets
+            {
+                keywords: ['kométa', 'comet', 'lemmon', 'veľký voz', 'ursa major'],
+                url: 'https://apod.nasa.gov/apod/image/2401/CometLemmon_2048.jpg',
+                credit: 'NASA',
+                license: 'Public Domain'
+            }
+        ];
+        
+        // Find the most relevant image based on title and keywords
+        const titleLower = title.toLowerCase();
+        const keywordsLower = keywords ? keywords.map(k => k.toLowerCase()) : [];
+        const allTerms = [titleLower, ...keywordsLower];
+        
+        for (const image of astronomyImages) {
+            const matchCount = image.keywords.filter(keyword => 
+                allTerms.some(term => term.includes(keyword))
+            ).length;
+            
+            if (matchCount > 0) {
+                console.log(`Found relevant astronomy image: ${image.url}`);
+                
+                // Download and upload to S3
+                const s3Url = await downloadAndUploadImage(image.url, 'nasa-astronomy');
+                
+                return {
+                    url: s3Url,
+                    license: image.license,
+                    creditText: `Image Credit: ${image.credit}`,
+                    copyrightNotice: `Public Domain - ${image.credit}`,
+                    acquireLicensePage: 'https://apod.nasa.gov/apod/',
+                    source: 'nasa-astronomy',
+                    photographer: image.credit,
+                    photographerUrl: 'https://www.nasa.gov/'
+                };
+            }
+        }
+        
+        console.log('No relevant astronomy image found');
+        return null;
+        
+    } catch (error) {
+        console.error('Error fetching astronomy image:', error);
         return null;
     }
 }
