@@ -51,6 +51,25 @@ export async function generateMetadata({ params }: DiscoveryPageProps): Promise<
   }
 }
 
+// Generate static params for all articles
+export async function generateStaticParams() {
+  try {
+    // Fetch all articles from API
+    const response = await ArticlesAPI.getArticlesByCategory("objav-dna", 100)
+    
+    return response.articles.map((article) => ({
+      slug: article.slug,
+    }))
+  } catch (error) {
+    console.error('Error generating static params:', error)
+    return []
+  }
+}
+
+// Add revalidation
+export const revalidate = 3600 // Revalidate every hour (ISR)
+export const dynamicParams = true // Allow dynamic params for new articles
+
 export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
   const { slug } = await params
   

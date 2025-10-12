@@ -58,13 +58,20 @@ export class ArticlesAPI {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('[API] Fetching from:', url, 'API_BASE_URL:', API_BASE_URL);
     
-    const response = await fetch(url, {
+    // Add Next.js caching options for SSG/ISR support
+    const fetchOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      next: {
+        revalidate: 3600, // Cache for 1 hour
+        tags: [`api-${endpoint}`], // For on-demand revalidation
+      },
       ...options,
-    }).catch((error) => {
+    };
+    
+    const response = await fetch(url, fetchOptions).catch((error) => {
       console.error('[API] Fetch error:', error, 'URL:', url);
       throw error;
     });

@@ -51,6 +51,35 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   }
 }
 
+// Generate static params for all articles
+export async function generateStaticParams() {
+  try {
+    // Fetch articles from multiple categories
+    const categories = ["objav-dna", "komunita", "tyzdenny-vyber"]
+    const allArticles: Article[] = []
+    
+    for (const category of categories) {
+      try {
+        const response = await ArticlesAPI.getArticlesByCategory(category, 100)
+        allArticles.push(...response.articles)
+      } catch (error) {
+        console.error(`Error fetching ${category} articles:`, error)
+      }
+    }
+    
+    return allArticles.map((article) => ({
+      slug: article.slug,
+    }))
+  } catch (error) {
+    console.error('Error generating static params:', error)
+    return []
+  }
+}
+
+// Add revalidation
+export const revalidate = 3600 // Revalidate every hour (ISR)
+export const dynamicParams = true // Allow dynamic params for new articles
+
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params
   

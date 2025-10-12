@@ -30,6 +30,16 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   return generateCategoryMetadata(slug, category.description)
 }
 
+// Generate static params for all categories
+export async function generateStaticParams() {
+  return categories.map((category) => ({
+    slug: category.slug,
+  }))
+}
+
+// Add revalidation
+export const revalidate = 3600 // Revalidate every hour (ISR)
+
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params
   const category = categories.find((c) => c.slug === slug)
