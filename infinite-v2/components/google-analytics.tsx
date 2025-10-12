@@ -22,12 +22,12 @@ export function GoogleAnalytics({ trackingId = GA_TRACKING_ID }: GoogleAnalytics
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             
-            // Initialize consent mode with granted defaults for testing
+            // Initialize consent mode with denied defaults
             gtag('consent', 'default', {
-              'ad_storage': 'granted',
-              'ad_user_data': 'granted',
-              'ad_personalization': 'granted',
-              'analytics_storage': 'granted'
+              'ad_storage': 'denied',
+              'ad_user_data': 'denied',
+              'ad_personalization': 'denied',
+              'analytics_storage': 'denied'
             });
           `,
         }}

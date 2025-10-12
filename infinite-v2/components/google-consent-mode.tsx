@@ -34,7 +34,7 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
     } else {
       // Show banner on first visit
       setShowBanner(true)
-      // Initialize with granted consent for testing
+      // Initialize with denied consent
       updateGoogleConsent(consent)
     }
   }, [])
