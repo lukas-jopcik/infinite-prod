@@ -143,7 +143,6 @@ export function generateArticleMetadata(article: ArticleData): Metadata {
 export function generateCategoryMetadata(category: string, description?: string): Metadata {
   const categoryNames: Record<string, string> = {
     "objav-dna": "Objav dňa",
-    "vysvetlenia": "Vysvetlenia",
     "komunita": "Komunita",
     "tyzdenny-vyber": "Týždenný výber",
   }

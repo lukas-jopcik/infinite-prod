@@ -27,19 +27,6 @@ export const mockArticles: Article[] = [
     type: "discovery",
   },
   {
-    slug: "ako-vznikaju-cierne-diery",
-    title: "Ako vznikajú čierne diery? Kompletný sprievodca",
-    perex:
-      "Objavte fascinujúci proces vzniku čiernych dier od kolapsu hviezd až po supermasívne čierne diery v centrách galaxií.",
-    content: "Kompletný obsah článku...",
-    category: "vysvetlenia",
-    date: "2025-01-06",
-    image: "/black-hole-formation.jpg",
-    imageAlt: "Vznik čiernej diery",
-    author: "Infinite",
-    type: "article",
-  },
-  {
     slug: "reddit-najlepsie-astrofotografie",
     title: "Reddit komunita zdieľa najlepšie astrofotografie mesiaca",
     perex: "Pozrite si úchvatné snímky vesmíru, ktoré vytvorili amatérski astronómovia z celého sveta.",
@@ -50,19 +37,6 @@ export const mockArticles: Article[] = [
     imageAlt: "Astrofotografia Mliečnej dráhy",
     author: "Infinite",
     source: "Reddit r/astrophotography",
-    type: "article",
-  },
-  {
-    slug: "planety-pre-deti",
-    title: "Spoznaj planéty slnečnej sústavy – pre deti",
-    perex:
-      "Zábavný a vzdelávací sprievodca planétami pre mladých astronómov. Objavte tajomstvá Merkúra, Venuše, Zeme a ďalších.",
-    content: "Kompletný obsah článku...",
-    category: "vysvetlenia",
-    date: "2025-01-04",
-    image: "/solar-system-planets-colorful.jpg",
-    imageAlt: "Planéty slnečnej sústavy",
-    author: "Infinite",
     type: "article",
   },
   {
@@ -90,18 +64,6 @@ export const mockArticles: Article[] = [
     imageAlt: "Objavená voda na Marse",
     author: "Infinite",
     type: "discovery",
-  },
-  {
-    slug: "co-su-exoplanety",
-    title: "Čo sú exoplanéty a prečo sú dôležité?",
-    perex: "Spoznajte planéty mimo našej slnečnej sústavy a ich význam pre hľadanie mimozemského života.",
-    content: "Kompletný obsah článku...",
-    category: "vysvetlenia",
-    date: "2025-01-01",
-    image: "/exoplanets.jpg",
-    imageAlt: "Exoplanéty",
-    author: "Infinite",
-    type: "article",
   },
   {
     slug: "astrofotografia-pre-zaciatocnikov",

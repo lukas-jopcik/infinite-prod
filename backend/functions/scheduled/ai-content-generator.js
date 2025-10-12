@@ -96,6 +96,14 @@ exports.handler = async (event) => {
                         console.log(`Article already exists for raw content ${rawItem.contentId}, skipping`);
                         continue;
                     }
+                    
+                    // Check for similar titles to prevent duplicates
+                    const similarTitle = await checkForSimilarTitle(rawItem.title);
+                    if (similarTitle) {
+                        console.log(`Similar article already exists: ${similarTitle}, skipping ${rawItem.title}`);
+                        continue;
+                    }
+                    
                     console.log(`No existing article found for ${rawItem.contentId}, proceeding with generation`);
                     
                     // Generate Slovak article using OpenAI
@@ -879,11 +887,11 @@ async function fetchCommunityImage(title, keywords) {
         
         // Try fallback queries if primary query returns only used images
         const fallbackQueries = [
-            'space astronomy',
-            'galaxy stars',
-            'universe cosmos',
-            'astronomy telescope',
-            'space exploration'
+            'nebula space',
+            'galaxy astronomy',
+            'telescope night sky',
+            'space exploration',
+            'astronomy stars'
         ];
         
         for (const fallbackQuery of fallbackQueries) {
@@ -1234,6 +1242,53 @@ async function checkExistingArticle(contentId, source) {
     } catch (error) {
         console.error('Error checking existing article:', error);
         return null; // If check fails, allow processing to continue
+    }
+}
+
+/**
+ * Check for similar titles to prevent duplicates
+ */
+async function checkForSimilarTitle(title) {
+    try {
+        // Get all existing komunita articles
+        const params = {
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'category = :category',
+            ExpressionAttributeValues: {
+                ':category': { S: 'komunita' }
+            }
+        };
+        
+        const result = await dynamodb.send(new ScanCommand(params));
+        
+        if (!result.Items || result.Items.length === 0) {
+            return null;
+        }
+        
+        // Check for similar titles (simple keyword matching)
+        const titleWords = title.toLowerCase().split(/\s+/);
+        
+        for (const item of result.Items) {
+            const existingTitle = item.title?.S?.toLowerCase() || '';
+            const existingWords = existingTitle.split(/\s+/);
+            
+            // Check if more than 50% of words match
+            const matchingWords = titleWords.filter(word => 
+                existingWords.some(existingWord => 
+                    existingWord.includes(word) || word.includes(existingWord)
+                )
+            );
+            
+            if (matchingWords.length > titleWords.length * 0.5) {
+                return existingTitle;
+            }
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Error checking for similar titles:', error);
+        return null;
     }
 }
 

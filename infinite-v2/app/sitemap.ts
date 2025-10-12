@@ -19,12 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/kategoria/vysvetlenia`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
       url: `${baseUrl}/kategoria/komunita`,
       lastModified: new Date(),
       changeFrequency: 'weekly',

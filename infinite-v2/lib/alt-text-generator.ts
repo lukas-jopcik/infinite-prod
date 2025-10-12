@@ -67,7 +67,6 @@ function getCategoryContext(category: string): string {
     'objav-dna': 'objav dňa z vesmíru',
     'tyzdenny-vyber': 'týždenný výber',
     'komunita': 'komunitný príspevok',
-    'vysvetlenia': 'vysvetlenie',
   }
 
   return categoryMap[category] || 'článok o vesmíre'
@@ -137,7 +136,6 @@ export function generateCategoryAltText(category: string): string {
     'objav-dna': 'Objav dňa z vesmíru - denné astronomické objavy',
     'tyzdenny-vyber': 'Týždenný výber - najlepšie články z vesmíru',
     'komunita': 'Komunita - príspevky od čitateľov',
-    'vysvetlenia': 'Vysvetlenia - komplexné témy jednoducho',
   }
 
   return categoryMap[category] || `Kategória ${category} - články o vesmíre`

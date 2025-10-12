@@ -8,7 +8,6 @@ import type { Metadata } from "next"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna", description: "Denné objavy a vizuálne snímky z vesmíru" },
-  { name: "Vysvetlenia", slug: "vysvetlenia", description: "Vzdelávacie články o vesmíre a astronómii" },
   { name: "Komunita", slug: "komunita", description: "Zaujímavé objavy a diskusie z astronomickej komunity 🚀" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber", description: "Kurátorovaný výber najlepších objavov týždňa" },
 ]

@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
-  { name: "Vysvetlenia", slug: "vysvetlenia" },
   { name: "Komunita", slug: "komunita" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
 ]

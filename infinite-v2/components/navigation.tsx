@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
-  { name: "Vysvetlenia", slug: "vysvetlenia" },
   { name: "Komunita", slug: "komunita" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
 ]
