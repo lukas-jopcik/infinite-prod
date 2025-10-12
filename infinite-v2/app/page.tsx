@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react"
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo"
 import { WebsiteStructuredData } from "@/components/structured-data"
 import { HomepageSkeleton } from "@/components/skeleton-loader"
+import { AdContainer } from "@/components/ad-manager"
 import { Suspense } from "react"
 import type { Metadata } from "next"
 
@@ -207,6 +208,13 @@ async function HomePageContent() {
         </section>
       )}
 
+
+      {/* Test AdSense */}
+      <section className="border-y border-border bg-card/30 py-8">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <AdContainer position="header" />
+        </div>
+      </section>
 
       {/* Newsletter CTA */}
       <section className="border-y border-border bg-card/50 py-16">

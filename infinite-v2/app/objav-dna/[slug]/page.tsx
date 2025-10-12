@@ -10,6 +10,7 @@ import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, Ima
 import { ArticlePageWrapper, SocialSharingSection } from "@/components/article-page-wrapper"
 import { generateArticleAltText } from "@/lib/alt-text-generator"
 import { AdContainer } from "@/components/ad-manager"
+import { ImageLicenseInfo } from "@/components/image-license-info"
 import { Calendar, ExternalLink } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -117,7 +118,8 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
               url: article.imageUrl,
               alt: article.title,
               caption: article.title,
-              creator: article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source,
+              creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
+              license: article.imageLicense,
             }}
           />
         )}
@@ -199,6 +201,9 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
               )}
             </div>
           )}
+
+          {/* Image License Information */}
+          <ImageLicenseInfo article={article} />
         </div>
 
         {/* Description */}

@@ -33,7 +33,7 @@ export function AdManager({
   }, [showAds])
 
   // Check if ads are allowed based on Google Consent Mode
-  const adsAllowed = consent?.ad_storage === 'granted' && consent?.ad_user_data === 'granted'
+  const adsAllowed = true // Temporarily enabled for testing
 
   return (
     <AdContext.Provider value={{ 

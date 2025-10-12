@@ -9,6 +9,7 @@ import { NewsletterSignup } from "@/components/newsletter-signup"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { ArticlePageWrapper, SocialSharingSection } from "@/components/article-page-wrapper"
 import { AdContainer } from "@/components/ad-manager"
+import { ImageLicenseInfo } from "@/components/image-license-info"
 import { Calendar, ExternalLink } from "lucide-react"
 import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, ImageObjectStructuredData } from "@/components/structured-data"
 import { generateArticleAltText } from "@/lib/alt-text-generator"
@@ -120,7 +121,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               url: article.imageUrl,
               alt: article.title,
               caption: article.title,
-              creator: article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source,
+              creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
+              license: article.imageLicense,
             }}
           />
         )}
@@ -215,6 +217,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 )}
               </div>
             )}
+
+            {/* Image License Information */}
+            <ImageLicenseInfo article={article} />
           </div>
 
           {/* Article Ad */}

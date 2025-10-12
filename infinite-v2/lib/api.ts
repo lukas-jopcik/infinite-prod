@@ -26,6 +26,14 @@ export interface Article {
   };
   selectedExcerpt?: string;
   discussionHighlights?: string[];
+  // Image license fields
+  imageLicense?: string;
+  imageCreditText?: string;
+  imageCopyrightNotice?: string;
+  imageAcquireLicensePage?: string;
+  imageSource?: string;
+  imagePhotographer?: string;
+  imagePhotographerUrl?: string;
 }
 
 export interface ArticleDetail extends Article {

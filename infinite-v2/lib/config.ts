@@ -5,7 +5,7 @@
 
 // Google Analytics 4 (GA4) Configuration
 export const GA_CONFIG = {
-  trackingId: process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX',
+  trackingId: process.env.NEXT_PUBLIC_GA_ID || 'G-WV1LXLMTJ6',
   enabled: process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_GA_ID !== 'G-XXXXXXXXXX'
 }
 
@@ -24,7 +24,7 @@ export const ADSENSE_CONFIG = {
     footer: process.env.NEXT_PUBLIC_ADSENSE_SLOT_FOOTER || 'xxxxxxxxxx',
     article: process.env.NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE || 'xxxxxxxxxx'
   },
-  enabled: process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ADSENSE_CLIENT !== 'ca-pub-xxxxxxxxxx'
+  enabled: true // Always enabled for testing
 }
 
 // Affiliate Marketing Configuration
