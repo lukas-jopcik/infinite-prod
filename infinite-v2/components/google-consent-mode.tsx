@@ -18,10 +18,10 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
   const [showBanner, setShowBanner] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [consent, setConsent] = useState<ConsentState>({
-    ad_storage: 'granted', // Temporarily granted for testing
-    ad_user_data: 'granted', // Temporarily granted for testing
-    ad_personalization: 'granted', // Temporarily granted for testing
-    analytics_storage: 'granted'
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied'
   })
 
   useEffect(() => {
