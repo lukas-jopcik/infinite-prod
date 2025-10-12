@@ -69,7 +69,10 @@ async function HomePageContent() {
       ...communityArticles,
     ];
     combined.sort((a, b) => new Date(b.originalDate || b.publishedAt).getTime() - new Date(a.originalDate || a.publishedAt).getTime());
-    latestArticle = combined[0] || null;
+    
+    // Only pick articles with images for hero section (exclude komunita)
+    const articlesWithImages = combined.filter(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
+    latestArticle = articlesWithImages[0] || combined[0] || null;
     recentArticles = combined.filter(a => !latestArticle || a.slug !== latestArticle.slug).slice(0, 9);
     
   } catch (error) {
@@ -107,18 +110,20 @@ async function HomePageContent() {
         />
       )}
       
-      {/* Hero Section */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <ArticleHero
-          slug={latestArticle.slug}
-          title={latestArticle.title}
-          perex={latestArticle.perex}
-          category={latestArticle.category}
-          date={latestArticle.originalDate || latestArticle.publishedAt}
-          image={latestArticle.imageUrl || '/placeholder-astronomy.jpg'}
-          imageAlt={latestArticle.title}
-        />
-      </section>
+      {/* Hero Section - Only show if article has image */}
+      {latestArticle && latestArticle.imageUrl && (
+        <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <ArticleHero
+            slug={latestArticle.slug}
+            title={latestArticle.title}
+            perex={latestArticle.perex}
+            category={latestArticle.category}
+            date={latestArticle.originalDate || latestArticle.publishedAt}
+            image={latestArticle.imageUrl}
+            imageAlt={latestArticle.title}
+          />
+        </section>
+      )}
 
       {/* Discovery Grid Layout */}
       <section className="border-y border-border bg-card/50 py-12">
@@ -141,7 +146,7 @@ async function HomePageContent() {
                 perex={article.perex}
                 category={article.category}
                 date={article.originalDate || article.publishedAt}
-                image={article.imageUrl || '/placeholder-astronomy.jpg'}
+                image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
                 imageAlt={article.title}
                 author={article.author}
                 source="Infinite AI"
@@ -164,7 +169,7 @@ async function HomePageContent() {
               perex={article.perex}
               category={article.category}
               date={article.originalDate || article.publishedAt}
-              image={article.imageUrl || '/placeholder-astronomy.jpg'}
+              image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
               imageAlt={article.title}
               author={article.author}
               source="Infinite AI"
@@ -196,7 +201,7 @@ async function HomePageContent() {
                   perex={article.perex}
                   category={article.category}
                   date={article.originalDate || article.publishedAt}
-                  image={article.imageUrl || '/placeholder-astronomy.jpg'}
+                  image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
                   imageAlt={article.title}
                   author={article.author}
                   source="Infinite AI"

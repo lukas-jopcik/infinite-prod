@@ -1,0 +1,17 @@
+{
+  "name": "apod-archive-scraper",
+  "version": "1.0.0",
+  "description": "Local scraper for NASA APOD archive data",
+  "main": "scrape-apod-archive.js",
+  "scripts": {
+    "start": "node scrape-apod-archive.js",
+    "scrape": "node scrape-apod-archive.js"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {},
+  "keywords": ["nasa", "apod", "scraper", "astronomy"],
+  "author": "jopcik",
+  "license": "MIT"
+}

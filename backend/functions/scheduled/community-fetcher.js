@@ -1,4 +1,4 @@
-const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const redditClient = require('./reddit-api-client');
@@ -177,8 +177,15 @@ async function processTopic(topic) {
             // Continue without comments
         }
         
-        // Create content ID
-        const contentId = `reddit-${topic.id}-${Date.now()}`;
+        // Check if this Reddit post was already processed
+        const existing = await checkForExistingRedditPost(topic.id);
+        if (existing) {
+            console.log(`Reddit post ${topic.id} already processed, skipping`);
+            return null;
+        }
+        
+        // Create content ID (use only Reddit post ID, no timestamp)
+        const contentId = `reddit-${topic.id}`;
         
         // Prepare content for AI processing
         const rawContent = {
@@ -226,6 +233,28 @@ async function processTopic(topic) {
     } catch (error) {
         console.error(`Error processing topic ${topic.title}:`, error);
         throw error;
+    }
+}
+
+/**
+ * Check if a Reddit post has already been processed
+ */
+async function checkForExistingRedditPost(postId) {
+    try {
+        const contentId = `reddit-${postId}`;
+        const params = {
+            TableName: RAW_CONTENT_TABLE,
+            Key: {
+                contentId: contentId,
+                source: 'reddit.com'
+            }
+        };
+        
+        const result = await dynamodb.send(new GetCommand(params));
+        return result.Item ? true : false;
+    } catch (error) {
+        console.error('Error checking for existing Reddit post:', error);
+        return false;
     }
 }
 

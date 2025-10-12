@@ -1,1 +1,1 @@
-{"statusCode":200,"body":"{\"message\":\"AI content generation completed successfully\",\"processedCount\":0,\"errorCount\":1,\"totalItems\":1,\"results\":[]}"}
+{"statusCode":200,"body":"{\"message\":\"No raw content items found for processing\",\"processedCount\":0}"}
