@@ -86,7 +86,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://vitals.vercel-insights.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://jqg44jstd1.execute-api.eu-central-1.amazonaws.com",
+              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://region1.analytics.google.com https://vitals.vercel-insights.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://jqg44jstd1.execute-api.eu-central-1.amazonaws.com",
               "frame-src 'self' https://www.google.com https://googleads.g.doubleclick.net",
               "object-src 'none'",
               "base-uri 'self'",

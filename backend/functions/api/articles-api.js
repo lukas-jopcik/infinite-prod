@@ -135,7 +135,15 @@ async function getAllArticles(headers, queryParams) {
                 metaDescription: item.metaDescription,
                 type: item.type,
                 source: item.source,
-                sourceUrl: item.sourceUrl
+                sourceUrl: item.sourceUrl,
+                // Image license fields
+                imageLicense: item.imageLicense,
+                imageCreditText: item.imageCreditText,
+                imageCopyrightNotice: item.imageCopyrightNotice,
+                imageAcquireLicensePage: item.imageAcquireLicensePage,
+                imageSource: item.imageSource,
+                imagePhotographer: item.imagePhotographer,
+                imagePhotographerUrl: item.imagePhotographerUrl
             }))
             .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         
@@ -203,7 +211,15 @@ async function getArticleById(articleId, headers) {
         keywords: result.Item.keywords,
         type: result.Item.type,
         source: result.Item.source,
-        sourceUrl: result.Item.sourceUrl
+        sourceUrl: result.Item.sourceUrl,
+        // Image license fields
+        imageLicense: result.Item.imageLicense,
+        imageCreditText: result.Item.imageCreditText,
+        imageCopyrightNotice: result.Item.imageCopyrightNotice,
+        imageAcquireLicensePage: result.Item.imageAcquireLicensePage,
+        imageSource: result.Item.imageSource,
+        imagePhotographer: result.Item.imagePhotographer,
+        imagePhotographerUrl: result.Item.imagePhotographerUrl
     };
     
     return {
@@ -303,7 +319,15 @@ async function getLatestArticles(headers, queryParams) {
             metaTitle: item.metaTitle,
             metaDescription: item.metaDescription,
             type: item.type,
-            tags: item.tags || []
+            tags: item.tags || [],
+            // Image license fields
+            imageLicense: item.imageLicense,
+            imageCreditText: item.imageCreditText,
+            imageCopyrightNotice: item.imageCopyrightNotice,
+            imageAcquireLicensePage: item.imageAcquireLicensePage,
+            imageSource: item.imageSource,
+            imagePhotographer: item.imagePhotographer,
+            imagePhotographerUrl: item.imagePhotographerUrl
         }));
         
         return {
@@ -394,7 +418,15 @@ async function getArticleBySlug(slug, headers) {
             type: item.type,
             source: item.source,
             sourceUrl: item.sourceUrl,
-            tags: item.tags || []
+            tags: item.tags || [],
+            // Image license fields
+            imageLicense: item.imageLicense,
+            imageCreditText: item.imageCreditText,
+            imageCopyrightNotice: item.imageCopyrightNotice,
+            imageAcquireLicensePage: item.imageAcquireLicensePage,
+            imageSource: item.imageSource,
+            imagePhotographer: item.imagePhotographer,
+            imagePhotographerUrl: item.imagePhotographerUrl
         };
         
         return {
@@ -479,7 +511,15 @@ async function getArticlesByCategory(category, headers, queryParams = {}) {
             type: item.type,
             source: item.source,
             sourceUrl: item.sourceUrl,
-            tags: item.tags || []
+            tags: item.tags || [],
+            // Image license fields
+            imageLicense: item.imageLicense,
+            imageCreditText: item.imageCreditText,
+            imageCopyrightNotice: item.imageCopyrightNotice,
+            imageAcquireLicensePage: item.imageAcquireLicensePage,
+            imageSource: item.imageSource,
+            imagePhotographer: item.imagePhotographer,
+            imagePhotographerUrl: item.imagePhotographerUrl
         }));
         
         return {
@@ -577,7 +617,15 @@ async function searchArticles(headers, queryParams) {
                 type: item.type,
                 source: item.source,
                 sourceUrl: item.sourceUrl,
-                tags: item.tags || [] // Pridať tags pre search
+                tags: item.tags || [], // Pridať tags pre search
+                // Image license fields
+                imageLicense: item.imageLicense,
+                imageCreditText: item.imageCreditText,
+                imageCopyrightNotice: item.imageCopyrightNotice,
+                imageAcquireLicensePage: item.imageAcquireLicensePage,
+                imageSource: item.imageSource,
+                imagePhotographer: item.imagePhotographer,
+                imagePhotographerUrl: item.imagePhotographerUrl
             }))
             .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         

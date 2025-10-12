@@ -15,6 +15,7 @@ interface GoogleConsentModeProps {
 }
 
 export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
+  const [mounted, setMounted] = useState(false)
   const [showBanner, setShowBanner] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [consent, setConsent] = useState<ConsentState>({
@@ -25,6 +26,9 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
   })
 
   useEffect(() => {
+    // Mark component as mounted to prevent hydration mismatch
+    setMounted(true)
+    
     // Check if consent was already given
     const savedConsent = localStorage.getItem('google-consent')
     if (savedConsent) {
@@ -89,6 +93,11 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
       ...prev,
       [key]: prev[key] === 'granted' ? 'denied' : 'granted'
     }))
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
   }
 
   if (!showBanner && !showSettings) {

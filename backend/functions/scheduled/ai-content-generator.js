@@ -327,7 +327,7 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
         
         // Determine system message based on category
         const systemMessage = rawItem.category === 'komunita' 
-            ? "Si expertný slovenský astronomický novinár a komunita moderátor. Tvoja úloha je vytvoriť zaujímavý, hravý a komunita-orientovaný článok o astronómii v slovenčine s emoji a citátmi z diskusie. Buď hravý, ale stále informativný!"
+            ? "Si expertný slovenský astronomický novinár špecializujúci sa na zrozumiteľné vysvetľovanie vesmírnych javov. Píšeš zaujímavé, originálne články, ktoré sú prístupné širokej verejnosti, ale zostávajú fakticky presné a informatívne."
             : "Si expertný astronóm a skvelý slovenský spisovateľ. Tvoja úloha je vytvoriť zaujímavý, vedecky presný a ľahko zrozumiteľný článok o astronómii v slovenčine.";
         
         const requestBody = {
@@ -722,7 +722,26 @@ async function processImages(rawItem, generatedContent) {
                         s3Key: s3Key,
                         alt: altText,
                         width: config.width,
-                        height: config.height
+                        height: config.height,
+                        // Add license information based on source
+                        ...(rawItem.source === 'apod' && {
+                            license: 'Public Domain',
+                            creditText: 'Image Credit: NASA APOD',
+                            copyrightNotice: 'Public Domain - NASA',
+                            acquireLicensePage: 'https://apod.nasa.gov/apod/',
+                            source: 'nasa-apod',
+                            photographer: 'NASA',
+                            photographerUrl: 'https://www.nasa.gov/'
+                        }),
+                        ...(rawItem.source?.includes('esa') && {
+                            license: 'ESA License',
+                            creditText: 'Image Credit: ESA/Hubble',
+                            copyrightNotice: '© ESA/Hubble',
+                            acquireLicensePage: 'https://www.spacetelescope.org/',
+                            source: 'esa-hubble',
+                            photographer: 'ESA/Hubble',
+                            photographerUrl: 'https://www.spacetelescope.org/'
+                        })
                     };
                     
                     console.log(`Processed ${sizeName} image: ${s3Url}`);
@@ -844,22 +863,62 @@ async function fetchCommunityImage(title, keywords) {
             return null;
         }
         
+        // Get list of already used Pexels photo IDs
+        const usedPhotoIds = await getUsedPexelsPhotoIds();
+        console.log(`Found ${usedPhotoIds.length} already used Pexels photos`);
+        
         // Create search query from title and keywords
         const searchQuery = createImageSearchQuery(title, keywords);
         console.log(`Search query: ${searchQuery}`);
         
-        // Try Pexels API
-        const pexelsImage = await fetchFromPexels(searchQuery, pexelsApiKey);
+        // Try Pexels API with primary query
+        const pexelsImage = await fetchFromPexels(searchQuery, pexelsApiKey, usedPhotoIds);
         if (pexelsImage) {
             return pexelsImage;
         }
         
-        console.log('No suitable image found from Pexels');
+        // Try fallback queries if primary query returns only used images
+        const fallbackQueries = [
+            'space astronomy',
+            'galaxy stars',
+            'universe cosmos',
+            'astronomy telescope',
+            'space exploration'
+        ];
+        
+        for (const fallbackQuery of fallbackQueries) {
+            console.log(`Trying fallback query: ${fallbackQuery}`);
+            const fallbackImage = await fetchFromPexels(fallbackQuery, pexelsApiKey, usedPhotoIds);
+            if (fallbackImage) {
+                console.log(`Found image with fallback query: ${fallbackQuery}`);
+                return fallbackImage;
+            }
+        }
+        
+        console.log('No suitable image found from Pexels with any query');
         return null;
         
     } catch (error) {
         console.error('Error fetching community image:', error);
         return null;
+    }
+}
+
+/**
+ * Get list of already used Pexels photo IDs to ensure uniqueness
+ */
+async function getUsedPexelsPhotoIds() {
+    try {
+        const command = new ScanCommand({
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'attribute_exists(pexelsPhotoId)',
+            ProjectionExpression: 'pexelsPhotoId'
+        });
+        const response = await dynamodb.send(command);
+        return response.Items?.map(item => item.pexelsPhotoId) || [];
+    } catch (error) {
+        console.error('Error getting used Pexels photo IDs:', error);
+        return [];
     }
 }
 
@@ -887,7 +946,7 @@ function createImageSearchQuery(title, keywords) {
 /**
  * Fetch image from Pexels API
  */
-async function fetchFromPexels(query, apiKey) {
+async function fetchFromPexels(query, apiKey, usedPhotoIds = []) {
     try {
         console.log(`Searching Pexels for: ${query}`);
         
@@ -897,21 +956,43 @@ async function fetchFromPexels(query, apiKey) {
             },
             params: {
                 query: query,
-                per_page: 10,
+                per_page: 20, // Increased for more options
                 orientation: 'landscape'
             },
             timeout: 10000
         });
         
         if (response.data && response.data.photos && response.data.photos.length > 0) {
-            const photo = response.data.photos[0];
+            // Filter out already used photos
+            const availablePhotos = response.data.photos.filter(photo => 
+                !usedPhotoIds.includes(photo.id.toString())
+            );
+            
+            if (availablePhotos.length === 0) {
+                console.log('All photos from this query are already used');
+                return null;
+            }
+            
+            const photo = availablePhotos[0]; // Use first available photo
             const imageUrl = photo.src.large2x || photo.src.large;
             
-            console.log(`Found Pexels image: ${imageUrl}`);
+            console.log(`Found unused Pexels image: ${imageUrl} (ID: ${photo.id})`);
             
             // Download and upload to S3
             const s3Url = await downloadAndUploadImage(imageUrl, 'pexels');
-            return s3Url;
+            
+            // Return image object with license information and photo ID
+            return {
+                url: s3Url,
+                license: 'Pexels License',
+                creditText: `Photo by ${photo.photographer} on Pexels`,
+                copyrightNotice: `© ${photo.photographer} / Pexels`,
+                acquireLicensePage: photo.url,
+                source: 'pexels',
+                photographer: photo.photographer,
+                photographerUrl: photo.photographer_url,
+                pexelsPhotoId: photo.id.toString()
+            };
         }
         
         return null;
@@ -961,7 +1042,7 @@ function createArticleRecord(rawItem, generatedContent, processedImages, communi
     
     // Set the main image URL for frontend compatibility
     // For community articles, prioritize community image, otherwise use processed images
-    const imageUrl = communityImageUrl || 
+    const imageUrl = (typeof communityImageUrl === 'string' ? communityImageUrl : communityImageUrl?.url) || 
                     processedImages.heroImage?.url || 
                     processedImages.cardImage?.url || 
                     processedImages.ogImage?.url || 
@@ -998,11 +1079,33 @@ function createArticleRecord(rawItem, generatedContent, processedImages, communi
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         
-        // Community-specific fields
+        // Image license information (if available)
+        ...(typeof communityImageUrl === 'object' && communityImageUrl && {
+            imageLicense: communityImageUrl.license,
+            imageCreditText: communityImageUrl.creditText,
+            imageCopyrightNotice: communityImageUrl.copyrightNotice,
+            imageAcquireLicensePage: communityImageUrl.acquireLicensePage,
+            imageSource: communityImageUrl.source,
+            imagePhotographer: communityImageUrl.photographer,
+            imagePhotographerUrl: communityImageUrl.photographerUrl,
+            pexelsPhotoId: communityImageUrl.pexelsPhotoId
+        }),
+        
+        // Processed images license information (for NASA APOD, ESA, etc.)
+        ...(processedImages.heroImage?.license && {
+            imageLicense: processedImages.heroImage.license,
+            imageCreditText: processedImages.heroImage.creditText,
+            imageCopyrightNotice: processedImages.heroImage.copyrightNotice,
+            imageAcquireLicensePage: processedImages.heroImage.acquireLicensePage,
+            imageSource: processedImages.heroImage.source,
+            imagePhotographer: processedImages.heroImage.photographer,
+            imagePhotographerUrl: processedImages.heroImage.photographerUrl
+        }),
+        
+        // Community-specific fields (cleaned up - no Reddit references)
         ...(category === 'komunita' && {
-            communityEngagement: rawItem.communityEngagement,
-            selectedExcerpt: rawItem.selectedExcerpt,
-            discussionHighlights: rawItem.discussionHighlights
+            // Only store essential fields, no Reddit-specific data
+            source: 'community' // Generic source instead of 'reddit'
         })
     };
 }
@@ -1231,48 +1334,45 @@ async function getESAHubbleContentForProcessing() {
  * Create community prompt for Reddit-based articles
  */
 function createCommunityPrompt(rawItem) {
-    return `Si expertný slovenský astronomický novinár a komunita moderátor. Tvoja úloha je vytvoriť zaujímavý článok pre sekciu "Komunita" na základe obsahu z Reddit alebo iných portálov.
+    return `Si expertný slovenský astronomický novinár. Tvoja úloha je vytvoriť zaujímavý a originálny článok o vesmíre a astronómii na základe zaujímavej témy.
 
 **VSTUPNÉ ÚDAJE:**
-- Názov: ${rawItem.title}
-- URL: ${rawItem.url}
-- Zdroj: ${rawItem.source}
+- Názov témy: ${rawItem.title}
+- Popis: ${rawItem.content || rawItem.description || 'Astronomická téma'}
 - Dátum: ${rawItem.date || new Date().toISOString().split('T')[0]}
-- Pôvodný obsah: ${rawItem.content || rawItem.description || 'Obsah z komunity'}
-- Úryvok z diskusie: ${rawItem.selectedExcerpt || 'Vybraný úryvok z diskusie'}
-- Upvotes: ${rawItem.communityEngagement?.upvotes || 0}
-- Komentáre: ${rawItem.communityEngagement?.comments || 0}
-- Engagement skóre: ${rawItem.communityEngagement?.engagementScore || 0}
 
-**Štýl a jazyk (KOMUNITA):**
+**Štýl a jazyk:**
 - TÓN: Konverzačný, priateľský, ale profesionálny
-- ŠTYL: Menej formálny, viac príbehový
+- ŠTYL: Príbehový, zrozumiteľný
 - NEPOUŽÍVAJ EMOJI v nadpisoch ani v texte
-- Pridaj citáty z pôvodných komentárov (v uvozovkách)
+- Vysvetľuj veci jednoducho a prirodzene
 - Vytváraj otázky prirodzene vložené do textu
-- Vysvetľuj veci jednoducho, ako by si to povedal kamarátovi
+- Buď hravý, ale stále informativný
 
 **Požiadavky na článok:**
-1. **Meta title** (max 60 znakov): Zaujímavý, SEO-optimalizovaný názov VÝLUČNE V SLOVENČINE
-2. **Meta description** (max 160 znakov): Krátky popis článku VÝLUČNE V SLOVENČINE
-3. **H1 názov**: Hlavný názov článku VÝLUČNE V SLOVENČINE (bez emoji)
+1. **Meta title** (max 60 znakov): SEO-optimalizovaný názov VÝLUČNE V SLOVENČINE, musí obsahovať hlavné keyword a byť zaujímavý
+2. **Meta description** (max 160 znakov): Musí obsahovať hlavné keywords a byť zaujímavý pre vyhľadávače VÝLUČNE V SLOVENČINE
+3. **H1 názov**: SEO-optimalizovaný hlavný názov VÝLUČNE V SLOVENČINE (bez emoji), musí obsahovať hlavné keyword
 4. **Perex** (MINIMÁLNE 150 znakov): Úvodný text, ktorý zaujme čitateľa
 5. **Dynamické sekcie** (3-5 sekcií, každá MINIMÁLNE 300 znakov):
-   - Názvy sekcií vytvor na základe obsahu
-   - Musí byť chytľavé a zaujímavé
-   - Prirodzene vlož otázky do textu namiesto FAQ
-   - Príklady dobrých názvov: "Ako to celé začalo", "Čo na to hovorí komunita", "Prekvapivé zistenia"
+   - Vytvor 3-5 sekcií s názvami, ktoré prirodzene vyplývajú z obsahu témy
+   - Názvy musia byť chytľavé a zaujímavé
+   - Príklady dobrých názvov podľa typu obsahu:
+     * Pre objavy: "Ako to celé začalo", "Čo to znamená pre vedu", "Prekvapivé detaily"
+     * Pre javy: "Ako to funguje", "Prečo je to fascinujúce", "Čo ďalej očakávať"
+     * Pre misie: "Ciele misie", "Technológia za tým", "Čo sa môže stať"
+   - Sekcie musia prirodzene prúdiť a rozprávať príbeh
 6. **FAQ sekcia** (3-5 otázok):
    - Vytvor prirodzené otázky založené na obsahu
    - Otázky musia byť relevantné k téme
-   - Odpovede stručné ale informatívne
+   - Odpovede stručné ale informatívne (každá MINIMÁLNE 100 znakov)
+7. **Keywords** (5-8 slovenských výrazov): Vytvor relevantné keywords pre SEO
 
 **DÔLEŽITÉ:**
 - Celkový obsah MUSÍ mať aspoň 1200 znakov!
-- Použij citáty z komentárov v uvozovkách
-- Buď hravý, ale stále informativný
 - Vysvetľuj astronomické pojmy jednoducho
 - Vytváraj chytľavé názvy sekcií, ktoré budú zaujímať čitateľov
+- Článok musí vyzerať ako originálny obsah, nie ako preklad alebo citácia
 
 **Formát výstupu (JSON):**
 \`\`\`json
@@ -1302,7 +1402,7 @@ function createCommunityPrompt(rawItem) {
 }
 \`\`\`
 
-Vytvor zaujímavý, chytľavý článok, ktorý bude mať úspech v komunite!`;
+Vytvor zaujímavý, originálny článok, ktorý bude informatívny a zaujímavý pre čitateľov!`;
 }
 
 // Export functions for testing
@@ -1317,5 +1417,6 @@ module.exports = {
     storeArticle,
     checkExistingArticle,
     fetchCommunityImage,
-    fetchFromPexels
+    fetchFromPexels,
+    getUsedPexelsPhotoIds
 };

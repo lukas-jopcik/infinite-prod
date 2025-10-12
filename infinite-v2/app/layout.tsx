@@ -2,7 +2,6 @@ import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import "./komunita.css"
 import { Navigation } from "@/components/navigation"
@@ -77,7 +76,6 @@ export default function RootLayout({
               <Footer />
             </Suspense>
             <PerformanceMonitor />
-            <Analytics />
           </AdManager>
         </AnalyticsProvider>
       </body>
