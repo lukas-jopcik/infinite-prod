@@ -6,6 +6,11 @@ interface ImageLicenseInfoProps {
 }
 
 export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
+  // Skip rendering for komunita articles (they don't have images)
+  if (article.category === 'komunita') {
+    return null
+  }
+  
   // Show for all articles that have any license information
   // For APOD/weekly: show all available fields
   // For community: show Pexels license info

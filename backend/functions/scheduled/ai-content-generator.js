@@ -123,8 +123,8 @@ exports.handler = async (event) => {
                 // Fetch community image if this is a community article
                 let communityImageUrl = null;
                 if (rawItem.category === 'komunita') {
-                    // Temporarily disable image fetching to avoid irrelevant Pexels images
-                    console.log('Skipping community image fetch to avoid irrelevant images');
+                    // Disable image fetching for community articles - use text only
+                    console.log('Community articles use text-only format, skipping image fetch');
                     communityImageUrl = null;
                 }
                 
@@ -859,58 +859,55 @@ function generateAltText(rawItem, generatedContent) {
 }
 
 /**
- * Fetch community image from astronomy sources
+ * Fetch community image from Unsplash (better astronomy content)
  */
 async function fetchCommunityImage(title, keywords) {
     try {
         console.log(`Fetching community image for: ${title}`);
         
-        // Try to get a relevant astronomy image from NASA/ESA sources first
-        const astronomyImage = await fetchAstronomyImage(title, keywords);
-        if (astronomyImage) {
-            return astronomyImage;
-        }
-        
-        // Fallback to Pexels only if no astronomy image is found
-        const pexelsApiKey = process.env.PEXELS_API_KEY;
-        if (!pexelsApiKey) {
-            console.log('No Pexels API key available, skipping image fetch');
+        // Get Unsplash API keys from Secrets Manager
+        const unsplashKeys = await getUnsplashApiKeys();
+        if (!unsplashKeys) {
+            console.log('No Unsplash API keys available, skipping image fetch');
             return null;
         }
         
-        // Get list of already used Pexels photo IDs
-        const usedPhotoIds = await getUsedPexelsPhotoIds();
-        console.log(`Found ${usedPhotoIds.length} already used Pexels photos`);
+        // Get list of already used Unsplash photo IDs
+        const usedPhotoIds = await getUsedUnsplashPhotoIds();
+        console.log(`Found ${usedPhotoIds.length} already used Unsplash photos`);
         
         // Create search query from title and keywords
         const searchQuery = createImageSearchQuery(title, keywords);
         console.log(`Search query: ${searchQuery}`);
         
-        // Try Pexels API with primary query
-        const pexelsImage = await fetchFromPexels(searchQuery, pexelsApiKey, usedPhotoIds);
-        if (pexelsImage) {
-            return pexelsImage;
+        // Try Unsplash API with primary query
+        const unsplashImage = await fetchFromUnsplash(searchQuery, unsplashKeys, usedPhotoIds);
+        if (unsplashImage) {
+            return unsplashImage;
         }
         
         // Try fallback queries if primary query returns only used images
         const fallbackQueries = [
-            'nebula space',
+            'space nebula',
             'galaxy astronomy',
             'telescope night sky',
             'space exploration',
-            'astronomy stars'
+            'astronomy stars',
+            'universe cosmos',
+            'deep space',
+            'astronomical objects'
         ];
         
         for (const fallbackQuery of fallbackQueries) {
             console.log(`Trying fallback query: ${fallbackQuery}`);
-            const fallbackImage = await fetchFromPexels(fallbackQuery, pexelsApiKey, usedPhotoIds);
+            const fallbackImage = await fetchFromUnsplash(fallbackQuery, unsplashKeys, usedPhotoIds);
             if (fallbackImage) {
                 console.log(`Found image with fallback query: ${fallbackQuery}`);
                 return fallbackImage;
             }
         }
         
-        console.log('No suitable image found from any source');
+        console.log('No suitable image found from Unsplash');
         return null;
         
     } catch (error) {
@@ -1012,6 +1009,109 @@ async function fetchAstronomyImage(title, keywords) {
         
     } catch (error) {
         console.error('Error fetching astronomy image:', error);
+        return null;
+    }
+}
+
+/**
+ * Get Unsplash API keys from Secrets Manager
+ */
+async function getUnsplashApiKeys() {
+    try {
+        const command = new GetSecretValueCommand({
+            SecretId: 'infinite-unsplash-api-keys-dev'
+        });
+        
+        const result = await secretsManager.send(command);
+        const secret = JSON.parse(result.SecretString);
+        
+        return {
+            accessKey: secret.UNSPLASH_ACCESS_KEY,
+            secretKey: secret.UNSPLASH_SECRET_KEY,
+            appId: secret.UNSPLASH_APP_ID
+        };
+    } catch (error) {
+        console.error('Error getting Unsplash API keys:', error);
+        return null;
+    }
+}
+
+/**
+ * Get list of already used Unsplash photo IDs to ensure uniqueness
+ */
+async function getUsedUnsplashPhotoIds() {
+    try {
+        const command = new ScanCommand({
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'attribute_exists(unsplashPhotoId)',
+            ProjectionExpression: 'unsplashPhotoId'
+        });
+        
+        const result = await dynamodb.send(command);
+        return result.Items ? result.Items.map(item => item.unsplashPhotoId?.S).filter(Boolean) : [];
+    } catch (error) {
+        console.error('Error getting used Unsplash photo IDs:', error);
+        return [];
+    }
+}
+
+/**
+ * Fetch image from Unsplash API
+ */
+async function fetchFromUnsplash(query, apiKeys, usedPhotoIds = []) {
+    try {
+        console.log(`Searching Unsplash for: ${query}`);
+        
+        const response = await axios.get('https://api.unsplash.com/search/photos', {
+            headers: {
+                'Authorization': `Client-ID ${apiKeys.accessKey}`
+            },
+            params: {
+                query: query,
+                per_page: 20,
+                orientation: 'landscape',
+                content_filter: 'high'
+            },
+            timeout: 10000
+        });
+        
+        if (response.data && response.data.results && response.data.results.length > 0) {
+            // Filter out already used photos
+            const availablePhotos = response.data.results.filter(photo => 
+                !usedPhotoIds.includes(photo.id)
+            );
+            
+            if (availablePhotos.length === 0) {
+                console.log('All photos from this query are already used');
+                return null;
+            }
+            
+            const photo = availablePhotos[0]; // Use first available photo
+            const imageUrl = photo.urls.regular || photo.urls.small;
+            
+            console.log(`Found unused Unsplash image: ${imageUrl} (ID: ${photo.id})`);
+            
+            // Download and upload to S3
+            const s3Url = await downloadAndUploadImage(imageUrl, 'unsplash');
+            
+            // Return image object with license information and photo ID
+            return {
+                url: s3Url,
+                license: 'Unsplash License',
+                creditText: `Photo by ${photo.user.name} on Unsplash`,
+                copyrightNotice: `© ${photo.user.name} / Unsplash`,
+                acquireLicensePage: photo.links.html,
+                source: 'unsplash',
+                photographer: photo.user.name,
+                photographerUrl: photo.user.links.html,
+                unsplashPhotoId: photo.id
+            };
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Error fetching from Unsplash:', error);
         return null;
     }
 }

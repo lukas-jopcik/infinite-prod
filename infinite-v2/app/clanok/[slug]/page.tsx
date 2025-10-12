@@ -183,62 +183,47 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <p className="text-pretty text-xl leading-relaxed text-muted-foreground">{article.perex}</p>
           </header>
 
-          {/* Hero Image */}
-          <div className="mb-8">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
-            <Image
-              src={article.imageUrl || "/placeholder.svg"}
-              alt={generateArticleAltText({
-                title: article.title,
-                category: article.category,
-                source: article.source,
-              })}
-              fill
-              priority
-              className="object-cover"
-            />
-            </div>
-            
-            {/* Image Source and Illustrative Notice */}
-            <div className="mt-3 flex items-center justify-between">
-              {/* Left side - Illustrative photo notice with dynamic Pexels source */}
-              <div className="text-xs text-muted-foreground">
-                Fotografia je ilustračná | Zdroj: {article.imageCreditText || 'Photo by Pexels Contributor on Pexels'}
+          {/* Hero Image - Only show for non-komunita articles */}
+          {article.category !== 'komunita' && (
+            <div className="mb-8">
+              <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
+              <Image
+                src={article.imageUrl || "/placeholder.svg"}
+                alt={generateArticleAltText({
+                  title: article.title,
+                  category: article.category,
+                  source: article.source,
+                })}
+                fill
+                priority
+                className="object-cover"
+              />
               </div>
               
-              {/* Right side - Official Reddit source (only for community articles) */}
-              {article.source && article.category === 'komunita' && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Oficiálny zdroj: </span>
-                  {article.sourceUrl ? (
-                    <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
-                      {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
-                    </a>
-                  ) : (
-                    <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
-                  )}
+              {/* Image Source and Illustrative Notice */}
+              <div className="mt-3 flex items-center justify-between">
+                {/* Left side - Illustrative photo notice with dynamic Pexels source */}
+                <div className="text-xs text-muted-foreground">
+                  Fotografia je ilustračná | Zdroj: {article.imageCreditText || 'Photo by Pexels Contributor on Pexels'}
                 </div>
-              )}
-            </div>
-            
-            {/* For non-community articles, show only the official source on the right */}
-            {article.category !== 'komunita' && article.source && (
-              <div className="mt-3 flex items-center justify-end">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Oficiálny zdroj: </span>
-                  {article.sourceUrl ? (
-                    <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
-                      {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
-                    </a>
-                  ) : (
-                    <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
-                  )}
-                </div>
+                
+                {/* Right side - Official source */}
+                {article.source && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Oficiálny zdroj: </span>
+                    {article.sourceUrl ? (
+                      <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
+                        {article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}
+                      </a>
+                    ) : (
+                      <span>{article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source}</span>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Article Ad */}
           <AdContainer position="article" />
@@ -274,14 +259,32 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
           {/* Source and Credits */}
           <div className="mt-8 space-y-4">
-            {/* Image Source */}
-            {article.source && (
+            {/* Image Source - Only for non-komunita articles */}
+            {article.source && article.category !== 'komunita' && (
               <div className="rounded-lg border border-border bg-card/50 p-6">
                 <div className="flex items-start gap-3">
                   <ExternalLink className="mt-1 h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="mb-1 text-sm font-medium text-foreground">Zdroj snímky</p>
                     <p className="text-sm text-muted-foreground">{article.source}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Reddit source for komunita articles */}
+            {article.category === 'komunita' && article.sourceUrl && (
+              <div className="rounded-lg border border-border bg-card/50 p-6">
+                <div className="flex items-start gap-3">
+                  <ExternalLink className="mt-1 h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="mb-1 text-sm font-medium text-foreground">Zdroj</p>
+                    <p className="text-sm text-muted-foreground">
+                      Fotografiu a ďalšie informácie nájdete na:{" "}
+                      <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 underline">
+                        Reddit
+                      </a>
+                    </p>
                   </div>
                 </div>
               </div>
