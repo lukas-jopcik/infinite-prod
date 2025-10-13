@@ -12,6 +12,8 @@ export interface Article {
   author: string;
   readingTime: string;
   imageUrl?: string;
+  image?: string; // Add image field for frontend compatibility
+  imageAlt?: string; // Add imageAlt for accessibility
   metaTitle: string;
   metaDescription: string;
   type: string;
