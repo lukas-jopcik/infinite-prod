@@ -120,31 +120,36 @@ async function getAllArticles(headers, queryParams) {
         
         // Transform the data for frontend and sort by originalDate
         const articles = result.Items
-            .map(item => ({
-                id: item.articleId,
-                title: item.title,
-                slug: item.slug,
-                perex: item.perex,
-                category: item.category || 'discovery',
-                publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
-                originalDate: item.originalDate,
-                author: item.author,
-                readingTime: item.estimatedReadingTime,
-                imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-                metaTitle: item.metaTitle,
-                metaDescription: item.metaDescription,
-                type: item.type,
-                source: item.source,
-                sourceUrl: item.sourceUrl,
-                // Image license fields
-                imageLicense: item.imageLicense,
-                imageCreditText: item.imageCreditText,
-                imageCopyrightNotice: item.imageCopyrightNotice,
-                imageAcquireLicensePage: item.imageAcquireLicensePage,
-                imageSource: item.imageSource,
-                imagePhotographer: item.imagePhotographer,
-                imagePhotographerUrl: item.imagePhotographerUrl
-            }))
+            .map(item => {
+                const imageUrl = item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url;
+                return {
+                    id: item.articleId,
+                    title: item.title,
+                    slug: item.slug,
+                    perex: item.perex,
+                    category: item.category || 'discovery',
+                    publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
+                    originalDate: item.originalDate,
+                    author: item.author,
+                    readingTime: item.estimatedReadingTime,
+                    imageUrl: imageUrl,
+                    image: imageUrl, // Add image field for frontend compatibility
+                    imageAlt: item.metaTitle || item.title, // Add imageAlt for accessibility
+                    metaTitle: item.metaTitle,
+                    metaDescription: item.metaDescription,
+                    type: item.type,
+                    source: item.source,
+                    sourceUrl: item.sourceUrl,
+                    // Image license fields
+                    imageLicense: item.imageLicense,
+                    imageCreditText: item.imageCreditText,
+                    imageCopyrightNotice: item.imageCopyrightNotice,
+                    imageAcquireLicensePage: item.imageAcquireLicensePage,
+                    imageSource: item.imageSource,
+                    imagePhotographer: item.imagePhotographer,
+                    imagePhotographerUrl: item.imagePhotographerUrl
+                };
+            })
             .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         
         return {
@@ -305,30 +310,35 @@ async function getLatestArticles(headers, queryParams) {
         const result = { Items: allItems.slice(0, limit) };
         
         // Transform the data for frontend
-        const articles = result.Items.map(item => ({
-            id: item.articleId,
-            title: item.title,
-            slug: item.slug,
-            perex: item.perex,
-            category: item.category || 'discovery',
-            publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
-            originalDate: item.originalDate,
-            author: item.author,
-            readingTime: item.estimatedReadingTime,
-            imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-            metaTitle: item.metaTitle,
-            metaDescription: item.metaDescription,
-            type: item.type,
-            tags: item.tags || [],
-            // Image license fields
-            imageLicense: item.imageLicense,
-            imageCreditText: item.imageCreditText,
-            imageCopyrightNotice: item.imageCopyrightNotice,
-            imageAcquireLicensePage: item.imageAcquireLicensePage,
-            imageSource: item.imageSource,
-            imagePhotographer: item.imagePhotographer,
-            imagePhotographerUrl: item.imagePhotographerUrl
-        }));
+        const articles = result.Items.map(item => {
+            const imageUrl = item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url;
+            return {
+                id: item.articleId,
+                title: item.title,
+                slug: item.slug,
+                perex: item.perex,
+                category: item.category || 'discovery',
+                publishedAt: item.originalDate || item.publishedAt, // Use originalDate if available, fallback to publishedAt
+                originalDate: item.originalDate,
+                author: item.author,
+                readingTime: item.estimatedReadingTime,
+                imageUrl: imageUrl,
+                image: imageUrl, // Add image field for frontend compatibility
+                imageAlt: item.metaTitle || item.title, // Add imageAlt for accessibility
+                metaTitle: item.metaTitle,
+                metaDescription: item.metaDescription,
+                type: item.type,
+                tags: item.tags || [],
+                // Image license fields
+                imageLicense: item.imageLicense,
+                imageCreditText: item.imageCreditText,
+                imageCopyrightNotice: item.imageCopyrightNotice,
+                imageAcquireLicensePage: item.imageAcquireLicensePage,
+                imageSource: item.imageSource,
+                imagePhotographer: item.imagePhotographer,
+                imagePhotographerUrl: item.imagePhotographerUrl
+            };
+        });
         
         return {
             statusCode: 200,
@@ -397,6 +407,7 @@ async function getArticleBySlug(slug, headers) {
         const item = result.Items[0];
         
         // Transform the data to match frontend expectations
+        const imageUrl = item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url;
         const article = {
             id: item.articleId,
             title: item.title,
@@ -411,7 +422,9 @@ async function getArticleBySlug(slug, headers) {
             author: item.author,
             readingTime: item.estimatedReadingTime,
             images: item.images,
-            imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
+            imageUrl: imageUrl,
+            image: imageUrl, // Add image field for frontend compatibility
+            imageAlt: item.metaTitle || item.title, // Add imageAlt for accessibility
             metaTitle: item.metaTitle,
             metaDescription: item.metaDescription,
             keywords: item.keywords,
@@ -495,32 +508,37 @@ async function getArticlesByCategory(category, headers, queryParams = {}) {
         }
         
         // Transform the data to match frontend expectations
-        const articles = result.Items.map(item => ({
-            id: item.articleId,
-            title: item.title,
-            slug: item.slug,
-            perex: item.perex,
-            category: item.category || 'discovery',
-            publishedAt: item.originalDate || item.publishedAt,
-            originalDate: item.originalDate,
-            author: item.author,
-            readingTime: item.estimatedReadingTime,
-            imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-            metaTitle: item.metaTitle,
-            metaDescription: item.metaDescription,
-            type: item.type,
-            source: item.source,
-            sourceUrl: item.sourceUrl,
-            tags: item.tags || [],
-            // Image license fields
-            imageLicense: item.imageLicense,
-            imageCreditText: item.imageCreditText,
-            imageCopyrightNotice: item.imageCopyrightNotice,
-            imageAcquireLicensePage: item.imageAcquireLicensePage,
-            imageSource: item.imageSource,
-            imagePhotographer: item.imagePhotographer,
-            imagePhotographerUrl: item.imagePhotographerUrl
-        }));
+        const articles = result.Items.map(item => {
+            const imageUrl = item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url;
+            return {
+                id: item.articleId,
+                title: item.title,
+                slug: item.slug,
+                perex: item.perex,
+                category: item.category || 'discovery',
+                publishedAt: item.originalDate || item.publishedAt,
+                originalDate: item.originalDate,
+                author: item.author,
+                readingTime: item.estimatedReadingTime,
+                imageUrl: imageUrl,
+                image: imageUrl, // Add image field for frontend compatibility
+                imageAlt: item.metaTitle || item.title, // Add imageAlt for accessibility
+                metaTitle: item.metaTitle,
+                metaDescription: item.metaDescription,
+                type: item.type,
+                source: item.source,
+                sourceUrl: item.sourceUrl,
+                tags: item.tags || [],
+                // Image license fields
+                imageLicense: item.imageLicense,
+                imageCreditText: item.imageCreditText,
+                imageCopyrightNotice: item.imageCopyrightNotice,
+                imageAcquireLicensePage: item.imageAcquireLicensePage,
+                imageSource: item.imageSource,
+                imagePhotographer: item.imagePhotographer,
+                imagePhotographerUrl: item.imagePhotographerUrl
+            };
+        });
         
         return {
             statusCode: 200,
@@ -601,32 +619,37 @@ async function searchArticles(headers, queryParams) {
         
         // Transform and filter results, sort by originalDate
         const allArticles = result.Items
-            .map(item => ({
-                id: item.articleId,
-                title: item.title,
-                slug: item.slug,
-                perex: item.perex,
-                category: item.category || 'discovery',
-                publishedAt: item.originalDate || item.publishedAt,
-                originalDate: item.originalDate,
-                author: item.author,
-                readingTime: item.estimatedReadingTime,
-                imageUrl: item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url,
-                metaTitle: item.metaTitle,
-                metaDescription: item.metaDescription,
-                type: item.type,
-                source: item.source,
-                sourceUrl: item.sourceUrl,
-                tags: item.tags || [], // Pridať tags pre search
-                // Image license fields
-                imageLicense: item.imageLicense,
-                imageCreditText: item.imageCreditText,
-                imageCopyrightNotice: item.imageCopyrightNotice,
-                imageAcquireLicensePage: item.imageAcquireLicensePage,
-                imageSource: item.imageSource,
-                imagePhotographer: item.imagePhotographer,
-                imagePhotographerUrl: item.imagePhotographerUrl
-            }))
+            .map(item => {
+                const imageUrl = item.imageUrl || item.images?.heroImage?.url || item.images?.cardImage?.url || item.images?.ogImage?.url;
+                return {
+                    id: item.articleId,
+                    title: item.title,
+                    slug: item.slug,
+                    perex: item.perex,
+                    category: item.category || 'discovery',
+                    publishedAt: item.originalDate || item.publishedAt,
+                    originalDate: item.originalDate,
+                    author: item.author,
+                    readingTime: item.estimatedReadingTime,
+                    imageUrl: imageUrl,
+                    image: imageUrl, // Add image field for frontend compatibility
+                    imageAlt: item.metaTitle || item.title, // Add imageAlt for accessibility
+                    metaTitle: item.metaTitle,
+                    metaDescription: item.metaDescription,
+                    type: item.type,
+                    source: item.source,
+                    sourceUrl: item.sourceUrl,
+                    tags: item.tags || [], // Pridať tags pre search
+                    // Image license fields
+                    imageLicense: item.imageLicense,
+                    imageCreditText: item.imageCreditText,
+                    imageCopyrightNotice: item.imageCopyrightNotice,
+                    imageAcquireLicensePage: item.imageAcquireLicensePage,
+                    imageSource: item.imageSource,
+                    imagePhotographer: item.imagePhotographer,
+                    imagePhotographerUrl: item.imagePhotographerUrl
+                };
+            })
             .sort((a, b) => new Date(b.originalDate || b.publishedAt) - new Date(a.originalDate || a.publishedAt));
         
         // Client-side filtering for search (case-insensitive)

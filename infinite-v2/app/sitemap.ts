@@ -45,11 +45,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   try {
-    // Fetch articles from all categories
+    // Fetch articles from all categories with increased limits for sitemap
     const [objavDnaResponse, komunitaResponse, tyzdennyResponse] = await Promise.all([
-      ArticlesAPI.getArticlesByCategory("objav-dna", 100).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("komunita", 50).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 50).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("objav-dna", 1000).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("komunita", 200).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 200).catch(() => ({ articles: [] })),
     ])
 
     // Generate sitemap entries for all articles

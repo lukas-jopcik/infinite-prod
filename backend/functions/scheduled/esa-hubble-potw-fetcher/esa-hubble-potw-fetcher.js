@@ -5,11 +5,12 @@ const { v4: uuidv4 } = require('uuid');
 
 // Environment configuration
 const ENVIRONMENT = process.env.ENVIRONMENT || 'dev';
-const RAW_CONTENT_TABLE = `InfiniteRawContent-${ENVIRONMENT}`;
+const RAW_CONTENT_TABLE = `InfiniteApodArchive-${ENVIRONMENT}`;
 const RSS_FEED_URL = 'https://feeds.feedburner.com/esahubble/images/potw/';
 
 // Initialize DynamoDB client
-const dynamodb = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const REGION = process.env.AWS_REGION || 'eu-central-1';
+const dynamodb = new DynamoDBClient({ region: REGION });
 const docClient = DynamoDBDocumentClient.from(dynamodb);
 
 // Initialize RSS parser
@@ -101,22 +102,38 @@ async function fetchAndProcessFeed() {
 async function processFeedItem(item) {
     console.log('Processing item:', item.title);
     
-    // Extract image URL from content:encoded
-    const imageUrl = extractImageUrl(item['content:encoded']);
+    // Extract image URL - prefer enclosure URL over content:encoded
+    let imageUrl = null;
+    
+    // First try enclosure tag (most reliable)
+    if (item.enclosure && item.enclosure.url) {
+        imageUrl = item.enclosure.url;
+        console.log('Using enclosure URL:', imageUrl);
+    } else {
+        // Fallback to extracting from content:encoded
+        imageUrl = extractImageUrl(item['content:encoded']);
+        console.log('Extracted from content:', imageUrl);
+    }
+    
+    // Generate date string for contentId
+    const dateStr = new Date(item.pubDate).toISOString().split('T')[0]; // YYYY-MM-DD
     
     // Create content object
     const content = {
-        contentId: uuidv4(),
+        contentId: `esa-hubble-potw-${dateStr}-${uuidv4()}`,
         title: item.title,
         description: item.contentSnippet || item.content || '',
+        explanation: item.contentSnippet || item.content || '',
         url: item.link,
         imageUrl: imageUrl,
         date: new Date(item.pubDate).toISOString(),
         source: 'esa-hubble-potw',
         category: 'tyzdenny-vyber',
+        mediaType: 'image',
         guid: item.guid || item.link,
-        status: 'pending',
+        status: 'raw',
         environment: ENVIRONMENT,
+        fetchedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
