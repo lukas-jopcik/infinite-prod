@@ -1,4 +1,4 @@
-const { DynamoDBClient, ScanCommand: RawScanCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand, QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
@@ -52,13 +52,13 @@ exports.handler = async (event) => {
                 rawContentItems = [specificItem];
             }
         } else {
-            // Get raw content items that need processing (APOD, ESA Hubble, and Community content with status: "raw")
+            // Get raw content items that need processing (APOD content with status: "raw")
             const apodItems = await getRawContentForProcessing();
             
             // Also get ESA Hubble content with pending status
             const esaHubbleItems = await getESAHubbleContentForProcessing();
             
-            // Combine all types of content
+            // Combine both types of content
             rawContentItems = [...apodItems, ...esaHubbleItems];
         }
         
@@ -73,13 +73,6 @@ exports.handler = async (event) => {
             };
         }
         
-        // For testing: process only first item
-        const testMode = event.testMode || false;
-        if (testMode && rawContentItems.length > 0) {
-            rawContentItems = [rawContentItems[0]];
-            console.log('TEST MODE: Processing only first item');
-        }
-        
         let processedCount = 0;
         let errorCount = 0;
         const results = [];
@@ -88,23 +81,6 @@ exports.handler = async (event) => {
             for (const rawItem of rawContentItems) {
                 try {
                     console.log(`Processing raw content: ${rawItem.contentId}`);
-                    
-                    // Check if article already exists for this raw content (idempotency check)
-                    console.log(`Checking for existing article: ${rawItem.contentId}, source: ${rawItem.source}`);
-                    const existingArticle = await checkExistingArticle(rawItem.contentId, rawItem.source);
-                    if (existingArticle) {
-                        console.log(`Article already exists for raw content ${rawItem.contentId}, skipping`);
-                        continue;
-                    }
-                    
-                    // Check for similar titles to prevent duplicates
-                    const similarTitle = await checkForSimilarTitle(rawItem.title);
-                    if (similarTitle) {
-                        console.log(`Similar article already exists: ${similarTitle}, skipping ${rawItem.title}`);
-                        continue;
-                    }
-                    
-                    console.log(`No existing article found for ${rawItem.contentId}, proceeding with generation`);
                     
                     // Generate Slovak article using OpenAI
                 const generatedArticle = await generateSlovakArticle(rawItem, openaiApiKey);
@@ -120,16 +96,8 @@ exports.handler = async (event) => {
                 // Process and optimize images
                 const processedImages = await processImages(rawItem, generatedArticle);
                 
-                // Fetch community image if this is a community article
-                let communityImageUrl = null;
-                if (rawItem.category === 'komunita') {
-                    // Disable image fetching for community articles - use text only
-                    console.log('Community articles use text-only format, skipping image fetch');
-                    communityImageUrl = null;
-                }
-                
                 // Create article record
-                const articleRecord = createArticleRecord(rawItem, generatedArticle, processedImages, communityImageUrl);
+                const articleRecord = createArticleRecord(rawItem, generatedArticle, processedImages);
                 
                 // Store article in DynamoDB
                 await storeArticle(articleRecord);
@@ -248,77 +216,75 @@ async function getSpecificRawContent(contentId, source) {
 }
 
 /**
- * Get raw content items that need processing - optimized with GSI
+ * Check if article already exists for given contentId
+ */
+async function checkArticleExists(contentId) {
+    try {
+            const params = {
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'rawContentId = :contentId',
+                ExpressionAttributeValues: {
+                ':contentId': contentId
+            },
+            Limit: 1
+        };
+        const result = await dynamodb.send(new ScanCommand(params));
+        return result.Items && result.Items.length > 0;
+    } catch (error) {
+        console.error('Error checking article existence:', error);
+        return false;
+    }
+}
+
+/**
+ * Get raw content items that need processing - Sequential processing (1 article at a time)
  */
 async function getRawContentForProcessing() {
     try {
-        console.log('Getting raw content for processing...');
+        console.log('Getting raw content for processing (sequential mode)...');
         
-        // Try GSI first, fallback to scan if GSI is not ready
-        let result;
-        try {
-            // Use GSI for efficient querying by status
-            const params = {
-                TableName: RAW_CONTENT_TABLE,
-                IndexName: 'status-index',
-                KeyConditionExpression: '#status = :status',
-                ExpressionAttributeNames: {
-                    '#status': 'status'
-                },
-                ExpressionAttributeValues: {
-                    ':status': 'raw'
-                }
-            };
-            
-            console.log('DynamoDB GSI query params:', JSON.stringify(params, null, 2));
-            result = await dynamodb.send(new QueryCommand(params));
-            
-        } catch (gsiError) {
-            console.log('GSI not ready, falling back to scan:', gsiError.message);
-            // Fallback to scan if GSI is not ready
+        // Scan for RAW articles with IMAGE type only (exclude 'processing' and 'processed')
             const scanParams = {
                 TableName: RAW_CONTENT_TABLE,
-                FilterExpression: '#status = :status',
+            FilterExpression: '#status = :rawStatus AND mediaType = :imageType',
                 ExpressionAttributeNames: {
                     '#status': 'status'
                 },
                 ExpressionAttributeValues: {
-                    ':status': { S: 'raw' }
+                ':rawStatus': 'raw',
+                ':imageType': 'image'
                 }
             };
             
             console.log('DynamoDB scan params:', JSON.stringify(scanParams, null, 2));
-            result = await dynamodbRaw.send(new RawScanCommand(scanParams));
+        const result = await dynamodb.send(new ScanCommand(scanParams));
+        
+        console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} raw image articles`);
+        
+        if (!result.Items || result.Items.length === 0) {
+            console.log('No raw content found for processing');
+            return [];
         }
         
-        console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} items`);
+        // Sort by date descending (newest first)
+        const sortedItems = result.Items.sort((a, b) => {
+            return new Date(b.date) - new Date(a.date);
+        });
         
-        if (result.Items && result.Items.length > 0) {
-            // Convert raw DynamoDB items to DocumentClient format if needed
-            const convertedItems = result.Items.map(item => {
-                // If using GSI query, items are already in DocumentClient format
-                if (typeof item.status === 'string') {
-                    return item;
-                }
-                
-                // If using scan, convert from raw DynamoDB format
-                const converted = {};
-                for (const [key, value] of Object.entries(item)) {
-                    if (value.S) converted[key] = value.S;
-                    else if (value.N) converted[key] = value.N;
-                    else if (value.BOOL !== undefined) converted[key] = value.BOOL;
-                    else if (value.SS) converted[key] = value.SS;
-                    else if (value.NS) converted[key] = value.NS;
-                    else if (value.L) converted[key] = value.L;
-                    else if (value.M) converted[key] = value.M;
-                }
-                return converted;
-            });
+        // Try to claim articles until we find one that's not already claimed
+        for (const item of sortedItems) {
+            console.log(`Attempting to claim: ${item.date} - ${item.title}`);
+            const claimed = await claimRawContentForProcessing(item.contentId, item.source);
             
-            console.log('Found items:', convertedItems.map(item => ({ contentId: item.contentId, source: item.source, status: item.status })));
-            return convertedItems;
+            if (claimed) {
+                console.log(`✅ Successfully claimed article for processing`);
+                return [item];
+            } else {
+                console.log(`⚠️  Article already claimed, trying next one...`);
+            }
         }
         
+        console.log('No unclaimed articles found');
         return [];
         
     } catch (error) {
@@ -335,17 +301,12 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
         // Prepare the enhanced prompt based on objav-dna-slovenstina.md
         const prompt = createEnhancedPrompt(rawItem);
         
-        // Determine system message based on category
-        const systemMessage = rawItem.category === 'komunita' 
-            ? "Si expertný slovenský astronomický novinár špecializujúci sa na zrozumiteľné vysvetľovanie vesmírnych javov. Píšeš zaujímavé, originálne články, ktoré sú prístupné širokej verejnosti, ale zostávajú fakticky presné a informatívne."
-            : "Si expertný astronóm a skvelý slovenský spisovateľ. Tvoja úloha je vytvoriť zaujímavý, vedecky presný a ľahko zrozumiteľný článok o astronómii v slovenčine.";
-        
         const requestBody = {
             model: OPENAI_MODEL,
             messages: [
                 {
                     role: "system",
-                    content: systemMessage
+                    content: "Si expertný astronóm a skvelý slovenský spisovateľ. Tvoja úloha je vytvoriť zaujímavý, vedecky presný a ľahko zrozumiteľný článok o astronómii v slovenčine."
                 },
                 {
                     role: "user",
@@ -353,7 +314,7 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
                 }
             ],
             max_tokens: 6000,
-            temperature: rawItem.category === 'komunita' ? 0.8 : 0.7, // Higher creativity for community content
+            temperature: 0.7,
             top_p: 1,
             frequency_penalty: 0.1,
             presence_penalty: 0.1
@@ -395,12 +356,9 @@ async function generateSlovakArticle(rawItem, openaiApiKey) {
  */
 function createEnhancedPrompt(rawItem) {
     const isWeeklyPick = rawItem.category === 'tyzdenny-vyber';
-    const isCommunity = rawItem.category === 'komunita';
     
     if (isWeeklyPick) {
         return createWeeklyPickPrompt(rawItem);
-    } else if (isCommunity) {
-        return createCommunityPrompt(rawItem);
     } else {
         return createDailyDiscoveryPrompt(rawItem);
     }
@@ -582,10 +540,8 @@ function parseGeneratedContent(generatedContent, rawItem) {
         
         const parsedContent = JSON.parse(jsonMatch[0]);
         
-        // Validate required fields based on category
-        const isCommunity = rawItem.category === 'komunita';
+        // Validate required fields
         const requiredFields = ['metaTitle', 'metaDescription', 'h1Title', 'perex', 'sections', 'faq'];
-        
         for (const field of requiredFields) {
             if (!parsedContent[field]) {
                 throw new Error(`Missing required field: ${field}`);
@@ -612,7 +568,6 @@ function parseGeneratedContent(generatedContent, rawItem) {
 function validateGeneratedContent(generatedContent, category) {
     const errors = [];
     const isWeeklyPick = category === 'tyzdenny-vyber';
-    const isCommunity = category === 'komunita';
     
     // Check required fields
     if (!generatedContent.metaTitle || generatedContent.metaTitle.length > 60) {
@@ -637,11 +592,6 @@ function validateGeneratedContent(generatedContent, category) {
         if (!generatedContent.sections || generatedContent.sections.length !== 4) {
             errors.push('Weekly picks must have exactly 4 sections');
         }
-    } else if (isCommunity) {
-        // Community articles should have 3-5 dynamic sections
-        if (!generatedContent.sections || generatedContent.sections.length < 3 || generatedContent.sections.length > 5) {
-            errors.push('Community articles must have 3-5 sections');
-        }
     } else {
         // Daily discoveries should have exactly 5 sections
         if (!generatedContent.sections || generatedContent.sections.length !== 5) {
@@ -649,7 +599,6 @@ function validateGeneratedContent(generatedContent, category) {
         }
     }
     
-    // FAQ is required for all content types including community
     if (!generatedContent.faq || generatedContent.faq.length < 3) {
         errors.push('Must have at least 3 FAQ items');
     }
@@ -659,7 +608,7 @@ function validateGeneratedContent(generatedContent, category) {
         generatedContent.sections.reduce((sum, section) => sum + section.content.length, 0);
     
     // Different minimum lengths for different content types
-    const minLength = isWeeklyPick ? 1500 : isCommunity ? 1200 : 2000;
+    const minLength = isWeeklyPick ? 1500 : 2000;
     if (totalContentLength < minLength) {
         errors.push(`Total content length is too short (min ${minLength} characters, got ${totalContentLength})`);
     }
@@ -686,8 +635,8 @@ async function processImages(rawItem, generatedContent) {
     try {
         const processedImages = {};
         
-        // Get the main image URL
-        const imageUrl = rawItem.imageUrl || rawItem.media_url;
+        // Get the main image URL - prioritize imageUrl over url for ESA content
+        const imageUrl = rawItem.imageUrl || rawItem.media_url || rawItem.url;
         if (!imageUrl) {
             console.log('No image URL found for processing');
             return processedImages;
@@ -732,26 +681,7 @@ async function processImages(rawItem, generatedContent) {
                         s3Key: s3Key,
                         alt: altText,
                         width: config.width,
-                        height: config.height,
-                        // Add license information based on source
-                        ...(rawItem.source === 'apod' && {
-                            license: 'Public Domain',
-                            creditText: 'Image Credit: NASA APOD',
-                            copyrightNotice: 'Public Domain - NASA',
-                            acquireLicensePage: 'https://apod.nasa.gov/apod/',
-                            source: 'nasa-apod',
-                            photographer: 'NASA',
-                            photographerUrl: 'https://www.nasa.gov/'
-                        }),
-                        ...(rawItem.source?.includes('esa') && {
-                            license: 'ESA License',
-                            creditText: 'Image Credit: ESA/Hubble',
-                            copyrightNotice: '© ESA/Hubble',
-                            acquireLicensePage: 'https://www.spacetelescope.org/',
-                            source: 'esa-hubble',
-                            photographer: 'ESA/Hubble',
-                            photographerUrl: 'https://www.spacetelescope.org/'
-                        })
+                        height: config.height
                     };
                     
                     console.log(`Processed ${sizeName} image: ${s3Url}`);
@@ -783,7 +713,34 @@ async function downloadImage(url) {
             }
         });
         
-        return Buffer.from(response.data);
+        const buffer = Buffer.from(response.data);
+        
+        // Validate that we got an actual image, not HTML
+        const contentType = response.headers['content-type'];
+        if (contentType && !contentType.startsWith('image/')) {
+            console.error(`Invalid content type: ${contentType}. Expected image/*`);
+            return null;
+        }
+        
+        // Check for HTML content by looking for common HTML markers
+        const firstBytes = buffer.slice(0, 200);
+        const text = firstBytes.toString('utf8').toLowerCase();
+        if (text.includes('<html') || text.includes('<!doctype') || text.includes('<head>')) {
+            console.error('Downloaded content appears to be HTML, not an image');
+            return null;
+        }
+        
+        // Validate JPEG/PNG headers
+        const isJPEG = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+        const isPNG = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+        const isWebP = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+        
+        if (!isJPEG && !isPNG && !isWebP) {
+            console.warn('Downloaded content may not be a valid image format');
+        }
+        
+        console.log(`Successfully downloaded image: ${buffer.length} bytes, content-type: ${contentType}`);
+        return buffer;
     } catch (error) {
         console.error('Error downloading image:', error.message);
         return null;
@@ -852,418 +809,24 @@ async function uploadToS3(imageBuffer, s3Key) {
  */
 function generateAltText(rawItem, generatedContent) {
     const title = generatedContent.h1Title || rawItem.title || 'Astronomický objekt';
-    const source = rawItem.source === 'apod' ? 'APOD / NASA' : 
-                   rawItem.source?.includes('reddit') ? 'Komunita' : 'ESA / Hubble';
+    const source = rawItem.source === 'apod' ? 'APOD / NASA' : 'ESA / Hubble';
     
     return `${title} - ${source}`;
 }
 
 /**
- * Fetch community image from Unsplash (better astronomy content)
- */
-async function fetchCommunityImage(title, keywords) {
-    try {
-        console.log(`Fetching community image for: ${title}`);
-        
-        // Get Unsplash API keys from Secrets Manager
-        const unsplashKeys = await getUnsplashApiKeys();
-        if (!unsplashKeys) {
-            console.log('No Unsplash API keys available, skipping image fetch');
-            return null;
-        }
-        
-        // Get list of already used Unsplash photo IDs
-        const usedPhotoIds = await getUsedUnsplashPhotoIds();
-        console.log(`Found ${usedPhotoIds.length} already used Unsplash photos`);
-        
-        // Create search query from title and keywords
-        const searchQuery = createImageSearchQuery(title, keywords);
-        console.log(`Search query: ${searchQuery}`);
-        
-        // Try Unsplash API with primary query
-        const unsplashImage = await fetchFromUnsplash(searchQuery, unsplashKeys, usedPhotoIds);
-        if (unsplashImage) {
-            return unsplashImage;
-        }
-        
-        // Try fallback queries if primary query returns only used images
-        const fallbackQueries = [
-            'space nebula',
-            'galaxy astronomy',
-            'telescope night sky',
-            'space exploration',
-            'astronomy stars',
-            'universe cosmos',
-            'deep space',
-            'astronomical objects'
-        ];
-        
-        for (const fallbackQuery of fallbackQueries) {
-            console.log(`Trying fallback query: ${fallbackQuery}`);
-            const fallbackImage = await fetchFromUnsplash(fallbackQuery, unsplashKeys, usedPhotoIds);
-            if (fallbackImage) {
-                console.log(`Found image with fallback query: ${fallbackQuery}`);
-                return fallbackImage;
-            }
-        }
-        
-        console.log('No suitable image found from Unsplash');
-        return null;
-        
-    } catch (error) {
-        console.error('Error fetching community image:', error);
-        return null;
-    }
-}
-
-/**
- * Fetch relevant astronomy image from NASA/ESA sources
- */
-async function fetchAstronomyImage(title, keywords) {
-    try {
-        console.log(`Trying to fetch astronomy image for: ${title}`);
-        
-        // Create a list of astronomy image URLs that are relevant to common topics
-        const astronomyImages = [
-            // Nebulae
-            {
-                keywords: ['hmlovina', 'nebula', 'helix', 'kalifornská', 'california'],
-                url: 'https://apod.nasa.gov/apod/image/2401/CaliforniaNebula_Lease_2048.jpg',
-                credit: 'NASA APOD',
-                license: 'Public Domain'
-            },
-            {
-                keywords: ['hmlovina', 'nebula', 'helix', 'oko', 'eye'],
-                url: 'https://apod.nasa.gov/apod/image/2401/HelixNebula_Hubble_2048.jpg',
-                credit: 'NASA/ESA Hubble',
-                license: 'Public Domain'
-            },
-            // Galaxies
-            {
-                keywords: ['galaxia', 'galaxy', 'andromeda', 'm31'],
-                url: 'https://apod.nasa.gov/apod/image/2401/AndromedaGalaxy_Hubble_2048.jpg',
-                credit: 'NASA/ESA Hubble',
-                license: 'Public Domain'
-            },
-            // Saturn and Cassini
-            {
-                keywords: ['saturn', 'cassini', 'dione', 'mesiac', 'moon'],
-                url: 'https://apod.nasa.gov/apod/image/2401/SaturnDione_Cassini_2048.jpg',
-                credit: 'NASA/JPL Cassini',
-                license: 'Public Domain'
-            },
-            // Moon
-            {
-                keywords: ['mesiac', 'moon', 'svetlo', 'light', 'odvrátená', 'far side'],
-                url: 'https://apod.nasa.gov/apod/image/2401/FarSideMoon_LRO_2048.jpg',
-                credit: 'NASA LRO',
-                license: 'Public Domain'
-            },
-            // Stars
-            {
-                keywords: ['hviezda', 'star', 'betelgeuse', 'orion'],
-                url: 'https://apod.nasa.gov/apod/image/2401/Betelgeuse_Hubble_2048.jpg',
-                credit: 'NASA/ESA Hubble',
-                license: 'Public Domain'
-            },
-            // Comets
-            {
-                keywords: ['kométa', 'comet', 'lemmon', 'veľký voz', 'ursa major'],
-                url: 'https://apod.nasa.gov/apod/image/2401/CometLemmon_2048.jpg',
-                credit: 'NASA',
-                license: 'Public Domain'
-            }
-        ];
-        
-        // Find the most relevant image based on title and keywords
-        const titleLower = title.toLowerCase();
-        const keywordsLower = keywords ? keywords.map(k => k.toLowerCase()) : [];
-        const allTerms = [titleLower, ...keywordsLower];
-        
-        for (const image of astronomyImages) {
-            const matchCount = image.keywords.filter(keyword => 
-                allTerms.some(term => term.includes(keyword))
-            ).length;
-            
-            if (matchCount > 0) {
-                console.log(`Found relevant astronomy image: ${image.url}`);
-                
-                // Download and upload to S3
-                const s3Url = await downloadAndUploadImage(image.url, 'nasa-astronomy');
-                
-                return {
-                    url: s3Url,
-                    license: image.license,
-                    creditText: `Image Credit: ${image.credit}`,
-                    copyrightNotice: `Public Domain - ${image.credit}`,
-                    acquireLicensePage: 'https://apod.nasa.gov/apod/',
-                    source: 'nasa-astronomy',
-                    photographer: image.credit,
-                    photographerUrl: 'https://www.nasa.gov/'
-                };
-            }
-        }
-        
-        console.log('No relevant astronomy image found');
-        return null;
-        
-    } catch (error) {
-        console.error('Error fetching astronomy image:', error);
-        return null;
-    }
-}
-
-/**
- * Get Unsplash API keys from Secrets Manager
- */
-async function getUnsplashApiKeys() {
-    try {
-        const command = new GetSecretValueCommand({
-            SecretId: 'infinite-unsplash-api-keys-dev'
-        });
-        
-        const result = await secretsManager.send(command);
-        const secret = JSON.parse(result.SecretString);
-        
-        return {
-            accessKey: secret.UNSPLASH_ACCESS_KEY,
-            secretKey: secret.UNSPLASH_SECRET_KEY,
-            appId: secret.UNSPLASH_APP_ID
-        };
-    } catch (error) {
-        console.error('Error getting Unsplash API keys:', error);
-        return null;
-    }
-}
-
-/**
- * Get list of already used Unsplash photo IDs to ensure uniqueness
- */
-async function getUsedUnsplashPhotoIds() {
-    try {
-        const command = new ScanCommand({
-            TableName: ARTICLES_TABLE,
-            FilterExpression: 'attribute_exists(unsplashPhotoId)',
-            ProjectionExpression: 'unsplashPhotoId'
-        });
-        
-        const result = await dynamodb.send(command);
-        return result.Items ? result.Items.map(item => item.unsplashPhotoId?.S).filter(Boolean) : [];
-    } catch (error) {
-        console.error('Error getting used Unsplash photo IDs:', error);
-        return [];
-    }
-}
-
-/**
- * Fetch image from Unsplash API
- */
-async function fetchFromUnsplash(query, apiKeys, usedPhotoIds = []) {
-    try {
-        console.log(`Searching Unsplash for: ${query}`);
-        
-        const response = await axios.get('https://api.unsplash.com/search/photos', {
-            headers: {
-                'Authorization': `Client-ID ${apiKeys.accessKey}`
-            },
-            params: {
-                query: query,
-                per_page: 20,
-                orientation: 'landscape',
-                content_filter: 'high'
-            },
-            timeout: 10000
-        });
-        
-        if (response.data && response.data.results && response.data.results.length > 0) {
-            // Filter out already used photos
-            const availablePhotos = response.data.results.filter(photo => 
-                !usedPhotoIds.includes(photo.id)
-            );
-            
-            if (availablePhotos.length === 0) {
-                console.log('All photos from this query are already used');
-                return null;
-            }
-            
-            const photo = availablePhotos[0]; // Use first available photo
-            const imageUrl = photo.urls.regular || photo.urls.small;
-            
-            console.log(`Found unused Unsplash image: ${imageUrl} (ID: ${photo.id})`);
-            
-            // Download and upload to S3
-            const s3Url = await downloadAndUploadImage(imageUrl, 'unsplash');
-            
-            // Return image object with license information and photo ID
-            return {
-                url: s3Url,
-                license: 'Unsplash License',
-                creditText: `Photo by ${photo.user.name} on Unsplash`,
-                copyrightNotice: `© ${photo.user.name} / Unsplash`,
-                acquireLicensePage: photo.links.html,
-                source: 'unsplash',
-                photographer: photo.user.name,
-                photographerUrl: photo.user.links.html,
-                unsplashPhotoId: photo.id
-            };
-        }
-        
-        return null;
-        
-    } catch (error) {
-        console.error('Error fetching from Unsplash:', error);
-        return null;
-    }
-}
-
-/**
- * Get list of already used Pexels photo IDs to ensure uniqueness
- */
-async function getUsedPexelsPhotoIds() {
-    try {
-        const command = new ScanCommand({
-            TableName: ARTICLES_TABLE,
-            FilterExpression: 'attribute_exists(pexelsPhotoId)',
-            ProjectionExpression: 'pexelsPhotoId'
-        });
-        const response = await dynamodb.send(command);
-        return response.Items?.map(item => item.pexelsPhotoId) || [];
-    } catch (error) {
-        console.error('Error getting used Pexels photo IDs:', error);
-        return [];
-    }
-}
-
-/**
- * Create search query for image APIs
- */
-function createImageSearchQuery(title, keywords) {
-    // Extract relevant words from title
-    const titleWords = title.toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .split(/\s+/)
-        .filter(word => word.length > 3)
-        .slice(0, 3);
-    
-    // Add relevant keywords
-    const relevantKeywords = (keywords || [])
-        .filter(keyword => keyword.length > 3)
-        .slice(0, 2);
-    
-    // Combine and create search query
-    const searchTerms = [...titleWords, ...relevantKeywords];
-    return searchTerms.join(' ');
-}
-
-/**
- * Fetch image from Pexels API
- */
-async function fetchFromPexels(query, apiKey, usedPhotoIds = []) {
-    try {
-        console.log(`Searching Pexels for: ${query}`);
-        
-        const response = await axios.get('https://api.pexels.com/v1/search', {
-            headers: {
-                'Authorization': apiKey
-            },
-            params: {
-                query: query,
-                per_page: 20, // Increased for more options
-                orientation: 'landscape'
-            },
-            timeout: 10000
-        });
-        
-        if (response.data && response.data.photos && response.data.photos.length > 0) {
-            // Filter out already used photos
-            const availablePhotos = response.data.photos.filter(photo => 
-                !usedPhotoIds.includes(photo.id.toString())
-            );
-            
-            if (availablePhotos.length === 0) {
-                console.log('All photos from this query are already used');
-                return null;
-            }
-            
-            const photo = availablePhotos[0]; // Use first available photo
-            const imageUrl = photo.src.large2x || photo.src.large;
-            
-            console.log(`Found unused Pexels image: ${imageUrl} (ID: ${photo.id})`);
-            
-            // Download and upload to S3
-            const s3Url = await downloadAndUploadImage(imageUrl, 'pexels');
-            
-            // Return image object with license information and photo ID
-            return {
-                url: s3Url,
-                license: 'Pexels License',
-                creditText: `Photo by ${photo.photographer} on Pexels`,
-                copyrightNotice: `© ${photo.photographer} / Pexels`,
-                acquireLicensePage: photo.url,
-                source: 'pexels',
-                photographer: photo.photographer,
-                photographerUrl: photo.photographer_url,
-                pexelsPhotoId: photo.id.toString()
-            };
-        }
-        
-        return null;
-        
-    } catch (error) {
-        console.error('Error fetching from Pexels:', error.message);
-        return null;
-    }
-}
-
-
-/**
- * Download image and upload to S3
- */
-async function downloadAndUploadImage(imageUrl, source) {
-    try {
-        console.log(`Downloading image from ${source}: ${imageUrl}`);
-        
-        // Download image
-        const imageBuffer = await downloadImage(imageUrl);
-        if (!imageBuffer) {
-            throw new Error('Failed to download image');
-        }
-        
-        // Generate S3 key
-        const timestamp = Date.now();
-        const s3Key = `images/community/${source}-${timestamp}.jpg`;
-        
-        // Upload to S3
-        const s3Url = await uploadToS3(imageBuffer, s3Key);
-        
-        console.log(`Successfully uploaded community image: ${s3Url}`);
-        return s3Url;
-        
-    } catch (error) {
-        console.error('Error downloading and uploading image:', error);
-        return null;
-    }
-}
-
-/**
  * Create article record for DynamoDB
  */
-function createArticleRecord(rawItem, generatedContent, processedImages, communityImageUrl = null) {
+function createArticleRecord(rawItem, generatedContent, processedImages) {
     const articleId = uuidv4();
     const slug = generateSlug(generatedContent.h1Title);
     
     // Set the main image URL for frontend compatibility
-    // For community articles, prioritize community image, otherwise use processed images
-    const imageUrl = (typeof communityImageUrl === 'string' ? communityImageUrl : communityImageUrl?.url) || 
-                    processedImages.heroImage?.url || 
-                    processedImages.cardImage?.url || 
-                    processedImages.ogImage?.url || 
-                    null;
+    const imageUrl = processedImages.heroImage?.url || processedImages.cardImage?.url || processedImages.ogImage?.url || null;
     
     // Determine category and type based on raw content
     const category = rawItem.category || 'objav-dna';
-    const type = category === 'tyzdenny-vyber' ? 'weekly-pick' : 
-                 category === 'komunita' ? 'community' : 'discovery';
+    const type = category === 'tyzdenny-vyber' ? 'weekly-pick' : 'discovery';
     
     return {
         articleId: articleId,
@@ -1273,7 +836,7 @@ function createArticleRecord(rawItem, generatedContent, processedImages, communi
         metaDescription: generatedContent.metaDescription,
         perex: generatedContent.perex,
         content: generatedContent.sections,
-        faq: generatedContent.faq || [],
+        faq: generatedContent.faq,
         keywords: generatedContent.keywords || [],
         estimatedReadingTime: generatedContent.estimatedReadingTime || '5 minút',
         category: category,
@@ -1289,36 +852,7 @@ function createArticleRecord(rawItem, generatedContent, processedImages, communi
         rawContentId: rawItem.contentId,
         environment: ENVIRONMENT,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        
-        // Image license information (if available)
-        ...(typeof communityImageUrl === 'object' && communityImageUrl && {
-            imageLicense: communityImageUrl.license,
-            imageCreditText: communityImageUrl.creditText,
-            imageCopyrightNotice: communityImageUrl.copyrightNotice,
-            imageAcquireLicensePage: communityImageUrl.acquireLicensePage,
-            imageSource: communityImageUrl.source,
-            imagePhotographer: communityImageUrl.photographer,
-            imagePhotographerUrl: communityImageUrl.photographerUrl,
-            pexelsPhotoId: communityImageUrl.pexelsPhotoId
-        }),
-        
-        // Processed images license information (for NASA APOD, ESA, etc.)
-        ...(processedImages.heroImage?.license && {
-            imageLicense: processedImages.heroImage.license,
-            imageCreditText: processedImages.heroImage.creditText,
-            imageCopyrightNotice: processedImages.heroImage.copyrightNotice,
-            imageAcquireLicensePage: processedImages.heroImage.acquireLicensePage,
-            imageSource: processedImages.heroImage.source,
-            imagePhotographer: processedImages.heroImage.photographer,
-            imagePhotographerUrl: processedImages.heroImage.photographerUrl
-        }),
-        
-        // Community-specific fields (cleaned up - no Reddit references)
-        ...(category === 'komunita' && {
-            // Only store essential fields, no Reddit-specific data
-            source: 'community' // Generic source instead of 'reddit'
-        })
+        updatedAt: new Date().toISOString()
     };
 }
 
@@ -1362,9 +896,10 @@ async function storeArticle(articleRecord) {
 }
 
 /**
- * Update raw content status
+ * Atomically claim a raw content item for processing (prevents race conditions)
+ * Returns true if successfully claimed, false if already claimed by another process
  */
-async function updateRawContentStatus(contentId, source, status) {
+async function claimRawContentForProcessing(contentId, source) {
     try {
         const params = {
             TableName: RAW_CONTENT_TABLE,
@@ -1372,11 +907,48 @@ async function updateRawContentStatus(contentId, source, status) {
                 contentId: contentId,
                 source: source
             },
-            UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+            UpdateExpression: 'SET #status = :processing, updatedAt = :updatedAt',
+            ConditionExpression: '#status = :raw',
             ExpressionAttributeNames: {
                 '#status': 'status'
             },
             ExpressionAttributeValues: {
+                ':raw': 'raw',
+                ':processing': 'processing',
+                ':updatedAt': new Date().toISOString()
+            }
+        };
+        
+        await dynamodb.send(new UpdateCommand(params));
+        console.log(`✅ Successfully claimed ${contentId} for processing`);
+        return true;
+        
+    } catch (error) {
+        if (error.name === 'ConditionalCheckFailedException') {
+            console.log(`⚠️  Article ${contentId} already claimed by another process`);
+            return false;
+        }
+        console.error('Error claiming raw content:', error);
+        throw error;
+    }
+}
+
+/**
+ * Update raw content status
+ */
+async function updateRawContentStatus(contentId, source, status) {
+        try {
+            const params = {
+            TableName: RAW_CONTENT_TABLE,
+            Key: {
+                contentId: contentId,
+                source: source
+            },
+            UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+                ExpressionAttributeNames: {
+                '#status': 'status'
+                },
+                ExpressionAttributeValues: {
                 ':status': status,
                 ':updatedAt': new Date().toISOString()
             }
@@ -1388,141 +960,6 @@ async function updateRawContentStatus(contentId, source, status) {
     } catch (error) {
         console.error('Error updating raw content status:', error);
         throw new Error('Failed to update raw content status');
-    }
-}
-
-/**
- * Check if article already exists for raw content (idempotency check)
- * For Reddit posts, check by Reddit post ID to prevent duplicates from different contentId formats
- */
-async function checkExistingArticle(contentId, source) {
-    try {
-        console.log(`checkExistingArticle called with contentId: ${contentId}, source: ${source}`);
-        
-        // For Reddit posts, extract the Reddit post ID and check for any existing articles from the same post
-        if (contentId.startsWith('reddit-')) {
-            const redditPostId = contentId.replace('reddit-', '').split('-')[0]; // Extract just the Reddit post ID
-            console.log(`Checking for existing articles from Reddit post: ${redditPostId}`);
-            
-            // Scan for any articles that have rawContentId starting with this Reddit post ID
-            const scanParams = {
-                TableName: ARTICLES_TABLE,
-                FilterExpression: 'begins_with(rawContentId, :redditPrefix) AND #source = :source',
-                ExpressionAttributeNames: {
-                    '#source': 'source'
-                },
-                ExpressionAttributeValues: {
-                    ':redditPrefix': `reddit-${redditPostId}`,
-                    ':source': source
-                },
-                Limit: 1
-            };
-            
-            console.log('Scanning for existing Reddit article with params:', JSON.stringify(scanParams, null, 2));
-            const result = await dynamodb.send(new ScanCommand(scanParams));
-            console.log(`Reddit post scan result: ${result.Items ? result.Items.length : 0} items found`);
-            
-            if (result.Items && result.Items.length > 0) {
-                console.log(`Found existing article from Reddit post ${redditPostId}: ${result.Items[0].title?.S}`);
-                return result.Items[0];
-            }
-        }
-        
-        // For non-Reddit content or if no Reddit match found, use original logic
-        let result;
-        try {
-            const params = {
-                TableName: ARTICLES_TABLE,
-                IndexName: 'rawContentId-source-index',
-                KeyConditionExpression: 'rawContentId = :rawContentId AND #source = :source',
-                ExpressionAttributeNames: {
-                    '#source': 'source'
-                },
-                ExpressionAttributeValues: {
-                    ':rawContentId': contentId,
-                    ':source': source
-                },
-                Limit: 1
-            };
-            
-            console.log('Querying for existing article with GSI params:', JSON.stringify(params, null, 2));
-            result = await dynamodb.send(new QueryCommand(params));
-            console.log(`GSI Query result: ${result.Items ? result.Items.length : 0} items found`);
-            
-        } catch (gsiError) {
-            console.log('GSI not ready, falling back to scan:', gsiError.message);
-            
-            // Fallback to scan if GSI is not ready
-            const scanParams = {
-                TableName: ARTICLES_TABLE,
-                FilterExpression: 'rawContentId = :rawContentId AND #source = :source',
-                ExpressionAttributeNames: {
-                    '#source': 'source'
-                },
-                ExpressionAttributeValues: {
-                    ':rawContentId': contentId,
-                    ':source': source
-                },
-                Limit: 1
-            };
-            
-            console.log('Scanning for existing article with params:', JSON.stringify(scanParams, null, 2));
-            result = await dynamodb.send(new ScanCommand(scanParams));
-            console.log(`Scan result: ${result.Items ? result.Items.length : 0} items found`);
-        }
-        
-        return result.Items && result.Items.length > 0 ? result.Items[0] : null;
-        
-    } catch (error) {
-        console.error('Error checking existing article:', error);
-        return null; // If check fails, allow processing to continue
-    }
-}
-
-/**
- * Check for similar titles to prevent duplicates
- */
-async function checkForSimilarTitle(title) {
-    try {
-        // Get all existing komunita articles
-        const params = {
-            TableName: ARTICLES_TABLE,
-            FilterExpression: 'category = :category',
-            ExpressionAttributeValues: {
-                ':category': { S: 'komunita' }
-            }
-        };
-        
-        const result = await dynamodb.send(new ScanCommand(params));
-        
-        if (!result.Items || result.Items.length === 0) {
-            return null;
-        }
-        
-        // Check for similar titles (simple keyword matching)
-        const titleWords = title.toLowerCase().split(/\s+/);
-        
-        for (const item of result.Items) {
-            const existingTitle = item.title?.S?.toLowerCase() || '';
-            const existingWords = existingTitle.split(/\s+/);
-            
-            // Check if more than 50% of words match
-            const matchingWords = titleWords.filter(word => 
-                existingWords.some(existingWord => 
-                    existingWord.includes(word) || word.includes(existingWord)
-                )
-            );
-            
-            if (matchingWords.length > titleWords.length * 0.5) {
-                return existingTitle;
-            }
-        }
-        
-        return null;
-        
-    } catch (error) {
-        console.error('Error checking for similar titles:', error);
-        return null;
     }
 }
 
@@ -1572,7 +1009,7 @@ async function getESAHubbleContentForProcessing() {
             };
             
             console.log('DynamoDB scan params for ESA Hubble:', JSON.stringify(scanParams, null, 2));
-            result = await dynamodbRaw.send(new RawScanCommand(scanParams));
+            result = await dynamodbRaw.send(new ScanCommand(scanParams));
         }
 
         console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} ESA Hubble items`);
@@ -1619,93 +1056,13 @@ async function getESAHubbleContentForProcessing() {
     }
 }
 
-/**
- * Create community prompt for Reddit-based articles
- */
-function createCommunityPrompt(rawItem) {
-    return `Si expertný slovenský astronomický novinár. Tvoja úloha je vytvoriť zaujímavý a originálny článok o vesmíre a astronómii na základe zaujímavej témy.
-
-**VSTUPNÉ ÚDAJE:**
-- Názov témy: ${rawItem.title}
-- Popis: ${rawItem.content || rawItem.description || 'Astronomická téma'}
-- Dátum: ${rawItem.date || new Date().toISOString().split('T')[0]}
-
-**Štýl a jazyk:**
-- TÓN: Konverzačný, priateľský, ale profesionálny
-- ŠTYL: Príbehový, zrozumiteľný
-- NEPOUŽÍVAJ EMOJI v nadpisoch ani v texte
-- Vysvetľuj veci jednoducho a prirodzene
-- Vytváraj otázky prirodzene vložené do textu
-- Buď hravý, ale stále informativný
-
-**Požiadavky na článok:**
-1. **Meta title** (max 60 znakov): SEO-optimalizovaný názov VÝLUČNE V SLOVENČINE, musí obsahovať hlavné keyword a byť zaujímavý
-2. **Meta description** (max 160 znakov): Musí obsahovať hlavné keywords a byť zaujímavý pre vyhľadávače VÝLUČNE V SLOVENČINE
-3. **H1 názov**: SEO-optimalizovaný hlavný názov VÝLUČNE V SLOVENČINE (bez emoji), musí obsahovať hlavné keyword
-4. **Perex** (MINIMÁLNE 150 znakov): Úvodný text, ktorý zaujme čitateľa
-5. **Dynamické sekcie** (3-5 sekcií, každá MINIMÁLNE 300 znakov):
-   - Vytvor 3-5 sekcií s názvami, ktoré prirodzene vyplývajú z obsahu témy
-   - Názvy musia byť chytľavé a zaujímavé
-   - Príklady dobrých názvov podľa typu obsahu:
-     * Pre objavy: "Ako to celé začalo", "Čo to znamená pre vedu", "Prekvapivé detaily"
-     * Pre javy: "Ako to funguje", "Prečo je to fascinujúce", "Čo ďalej očakávať"
-     * Pre misie: "Ciele misie", "Technológia za tým", "Čo sa môže stať"
-   - Sekcie musia prirodzene prúdiť a rozprávať príbeh
-6. **FAQ sekcia** (3-5 otázok):
-   - Vytvor prirodzené otázky založené na obsahu
-   - Otázky musia byť relevantné k téme
-   - Odpovede stručné ale informatívne (každá MINIMÁLNE 100 znakov)
-7. **Keywords** (5-8 slovenských výrazov): Vytvor relevantné keywords pre SEO
-
-**DÔLEŽITÉ:**
-- Celkový obsah MUSÍ mať aspoň 1200 znakov!
-- Vysvetľuj astronomické pojmy jednoducho
-- Vytváraj chytľavé názvy sekcií, ktoré budú zaujímať čitateľov
-- Článok musí vyzerať ako originálny obsah, nie ako preklad alebo citácia
-
-**Formát výstupu (JSON):**
-\`\`\`json
-{
-  "metaTitle": "Názov pre SEO",
-  "metaDescription": "Popis pre SEO",
-  "h1Title": "Hlavný názov bez emoji",
-  "perex": "Úvodný text...",
-  "sections": [
-    {
-      "title": "Dynamický názov sekcie",
-      "content": "Obsah sekcie..."
-    },
-    {
-      "title": "Ďalší zaujímavý názov", 
-      "content": "Obsah s citátmi..."
-    }
-  ],
-  "faq": [
-    {
-      "question": "Otázka založená na obsahu",
-      "answer": "Stručná ale informatívna odpoveď"
-    }
-  ],
-  "keywords": ["kľúčové", "slová", "pre", "seo"],
-  "estimatedReadingTime": "X minút"
-}
-\`\`\`
-
-Vytvor zaujímavý, originálny článok, ktorý bude informatívny a zaujímavý pre čitateľov!`;
-}
-
 // Export functions for testing
 module.exports = {
     handler: exports.handler,
     getOpenAIApiKey,
     getRawContentForProcessing,
     generateSlovakArticle,
-    createCommunityPrompt,
     validateGeneratedContent,
     createArticleRecord,
-    storeArticle,
-    checkExistingArticle,
-    fetchCommunityImage,
-    fetchFromPexels,
-    getUsedPexelsPhotoIds
+    storeArticle
 };
