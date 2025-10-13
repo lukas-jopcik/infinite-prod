@@ -16,9 +16,10 @@ interface ArticleCardProps {
   type: "article" | "discovery"
   author?: string
   source?: string
+  imageUrl?: string // Add fallback for imageUrl
 }
 
-export function ArticleCard({ slug, title, perex, category, date, image, imageAlt, type, source = "Infinite AI" }: ArticleCardProps) {
+export function ArticleCard({ slug, title, perex, category, date, image, imageAlt, type, source = "Infinite AI", imageUrl }: ArticleCardProps) {
   // Determine correct URL based on category
   const getHref = () => {
     if (category === 'tyzdenny-vyber') {
@@ -52,10 +53,10 @@ export function ArticleCard({ slug, title, perex, category, date, image, imageAl
       shallow={false}
     >
       {/* Only show image if it exists and is not a placeholder */}
-      {image && image !== "/placeholder.svg" && (
+      {(image || imageUrl) && (image !== "/placeholder.svg" && imageUrl !== "/placeholder.svg") && (
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           <Image
-            src={image}
+            src={image || imageUrl || ""}
             alt={optimizedAltText}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
