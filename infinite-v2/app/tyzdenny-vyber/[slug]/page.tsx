@@ -194,7 +194,7 @@ export default async function WeeklyPickPage({ params }: WeeklyPickPageProps) {
           <div className="mb-8">
             <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
             <Image
-              src={article.imageUrl || "/placeholder.svg"}
+              src={article.image || article.imageUrl || "/placeholder.svg"}
               alt={generateArticleAltText({
                 title: article.title,
                 category: article.category,
@@ -323,7 +323,8 @@ export default async function WeeklyPickPage({ params }: WeeklyPickPageProps) {
                     perex={relatedArticle.perex}
                     category={relatedArticle.category}
                     date={relatedArticle.originalDate || relatedArticle.publishedAt}
-                    image={relatedArticle.imageUrl || "/placeholder.svg"}
+                    image={relatedArticle.image || relatedArticle.imageUrl || "/placeholder.svg"}
+                    imageUrl={relatedArticle.imageUrl}
                     imageAlt={relatedArticle.title}
                     author={relatedArticle.author}
                     source="Infinite AI"
