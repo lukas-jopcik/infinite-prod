@@ -2,10 +2,10 @@
 # This file helps prevent ad fraud and ensures proper ad revenue attribution
 
 # Google AdSense
-google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-7836061933361865, DIRECT, f08c47fec0942fa0
 
-# Add your actual AdSense publisher ID when available
-# Replace pub-0000000000000000 with your real AdSense publisher ID
+# AdSense publisher ID is configured
+# Publisher ID: pub-7836061933361865
 
 # Example format for other ad networks (uncomment and configure as needed):
 # google.com, pub-YOUR_PUBLISHER_ID, DIRECT, f08c47fec0942fa0
