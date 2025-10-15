@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import Image from "next/image"
 import { ArticlesAPI, Article, ArticleDetail } from "@/lib/api"
-import { generateArticleMetadata, getArticleMetaDescription } from "@/lib/seo"
+import { generateArticleMetadata, getArticleMetaDescription, generateArticleStructuredData, generateBreadcrumbStructuredData, generateFAQStructuredData, generateImageObjectStructuredData } from "@/lib/seo"
 import { ArticleCard } from "@/components/article-card"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { NewsletterSignup } from "@/components/newsletter-signup"
@@ -104,12 +104,11 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
 
   return (
     <ArticlePageWrapper article={article}>
-      <div className="flex flex-col">
-        <ScrollToTop />
-        
-        {/* Structured Data */}
-        <ArticleStructuredData 
-          article={{
+      {/* Structured Data in Head */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateArticleStructuredData({
             title: article.title,
             description: article.perex,
             slug: article.slug,
@@ -119,29 +118,43 @@ export default async function DiscoveryPage({ params }: DiscoveryPageProps) {
             author: article.author,
             category: article.category,
             tags: article.tags,
-          }}
-        />
-        <BreadcrumbStructuredData 
-          items={[
+          }), null, 2),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateBreadcrumbStructuredData([
             { name: "Domov", url: "/" },
             { name: "Objav dňa", url: "/kategoria/objav-dna" },
             { name: article.title, url: `/objav-dna/${article.slug}` },
-          ]}
+          ]), null, 2),
+        }}
+      />
+      {article.faq && article.faq.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateFAQStructuredData(article.faq), null, 2),
+          }}
         />
-        {article.faq && article.faq.length > 0 && (
-          <FAQStructuredData faqs={article.faq} />
-        )}
-        {article.imageUrl && (
-          <ImageObjectStructuredData 
-            image={{
+      )}
+      {article.imageUrl && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateImageObjectStructuredData({
               url: article.imageUrl,
               alt: article.title,
               caption: article.title,
               creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
               license: article.imageLicense,
-            }}
-          />
-        )}
+            }), null, 2),
+          }}
+        />
+      )}
+      <div className="flex flex-col">
+        <ScrollToTop />
 
       {/* Breadcrumbs */}
       <div className="relative border-b border-border/50 bg-gradient-to-r from-card/40 via-card/20 to-card/40 backdrop-blur-sm">

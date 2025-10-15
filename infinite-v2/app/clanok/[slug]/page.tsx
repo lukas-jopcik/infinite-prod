@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import Image from "next/image"
 import { ArticlesAPI, Article, ArticleDetail } from "@/lib/api"
-import { generateArticleMetadata, getArticleMetaDescription } from "@/lib/seo"
+import { generateArticleMetadata, getArticleMetaDescription, generateArticleStructuredData, generateBreadcrumbStructuredData, generateFAQStructuredData, generateImageObjectStructuredData } from "@/lib/seo"
 import { CategoryBadge } from "@/components/category-badge"
 import { ArticleCard } from "@/components/article-card"
 import { Breadcrumbs } from "@/components/breadcrumbs"
@@ -13,6 +13,8 @@ import { ImageLicenseInfo } from "@/components/image-license-info"
 import { Calendar, ExternalLink } from "lucide-react"
 import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, ImageObjectStructuredData } from "@/components/structured-data"
 import { generateArticleAltText } from "@/lib/alt-text-generator"
+import SpaceArticleTemplate, { SpaceArticleData } from "@/components/space-article-template"
+import { buildBulvarMeta } from "@/lib/seo-bulvar"
 import type { Metadata } from "next"
 
 interface ArticlePageProps {
@@ -32,17 +34,50 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       }
     }
 
-    return generateArticleMetadata({
-      title: article.title,
-      description: getArticleMetaDescription(article, article.category),
-      slug: article.slug,
-      imageUrl: article.imageUrl,
-      publishedAt: article.publishedAt,
-      originalDate: article.originalDate,
-      author: article.author,
-      category: article.category,
-      tags: article.tags,
-    })
+    // Use bulvár SEO for news articles, regular SEO for others
+    if (article.category === "news" && article.type === "news") {
+            const bulvarMeta = buildBulvarMeta({
+              headline: article.title,
+              perex: article.perex,
+              body: article.content ? (Array.isArray(article.content) ? article.content.map(section => section.content) : [article.content]) : []
+            });
+      
+      return {
+        title: bulvarMeta.metaTitle,
+        description: bulvarMeta.metaDescription,
+        keywords: bulvarMeta.keywords,
+        openGraph: {
+          title: article.title,
+          description: article.perex,
+          images: (article.heroImage?.src || article.imageUrl) ? [{ url: article.heroImage?.src || article.imageUrl! }] : undefined,
+          type: 'article',
+          publishedTime: article.publishedAt,
+          authors: article.author ? [article.author] : undefined,
+          section: article.category,
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: article.title,
+          description: article.perex,
+          images: (article.heroImage?.src || article.imageUrl) ? [{ url: article.heroImage?.src || article.imageUrl! }] : undefined,
+        },
+        alternates: {
+          canonical: `https://infinite.sk/clanok/${article.slug}`,
+        },
+      };
+    } else {
+      return generateArticleMetadata({
+        title: article.title,
+        description: getArticleMetaDescription(article, article.category),
+        slug: article.slug,
+        imageUrl: article.imageUrl,
+        publishedAt: article.publishedAt,
+        originalDate: article.originalDate,
+        author: article.author,
+        category: article.category,
+        tags: article.tags,
+      });
+    }
   } catch {
     return {
       title: "Článok nenájdený | Infinite",
@@ -55,7 +90,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 export async function generateStaticParams() {
   try {
     // Fetch articles from multiple categories
-    const categories = ["objav-dna", "komunita", "tyzdenny-vyber"]
+    const categories = ["objav-dna", "news", "tyzdenny-vyber"]
     const allArticles: Article[] = []
     
     for (const category of categories) {
@@ -112,17 +147,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     redirect(`/objav-dna/${slug}`)
   } else if (article.category === "tyzdenny-vyber") {
     redirect(`/tyzdenny-vyber/${slug}`)
+  } else if (article.category === "news") {
+    redirect(`/vesmirne-novinky/${slug}`)
   }
-  // Community articles stay on /clanok/ URL
+  // Other articles stay on /clanok/ URL
 
   return (
     <ArticlePageWrapper article={article}>
-      <div className="flex flex-col">
-        <ScrollToTop />
-        
-        {/* Structured Data */}
-        <ArticleStructuredData 
-          article={{
+      {/* Structured Data in Head */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateArticleStructuredData({
             title: article.title,
             description: article.perex,
             slug: article.slug,
@@ -132,29 +168,43 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             author: article.author,
             category: article.category,
             tags: article.tags,
+          }), null, 2),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateBreadcrumbStructuredData([
+            { name: "Domov", url: "/" },
+            { name: article.category === "tyzdenny-vyber" ? "Týždenný výber" : article.category === "news" ? "Vesmírne novinky" : article.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), url: article.category === "news" ? "/kategoria/vesmirne-novinky" : `/kategoria/${article.category}` },
+            { name: article.title, url: `/clanok/${article.slug}` },
+          ]), null, 2),
+        }}
+      />
+      {article.faq && article.faq.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateFAQStructuredData(article.faq), null, 2),
           }}
         />
-        <BreadcrumbStructuredData 
-          items={[
-            { name: "Domov", url: "/" },
-            { name: article.category === "tyzdenny-vyber" ? "Týždenný výber" : article.category === "komunita" ? "Komunita" : article.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), url: article.category === "komunita" ? "/kategoria/komunita" : `/kategoria/${article.category}` },
-            { name: article.title, url: `/clanok/${article.slug}` },
-          ]}
-        />
-        {article.faq && article.faq.length > 0 && (
-          <FAQStructuredData faqs={article.faq} />
-        )}
-        {article.imageUrl && (
-          <ImageObjectStructuredData 
-            image={{
+      )}
+      {article.imageUrl && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateImageObjectStructuredData({
               url: article.imageUrl,
               alt: article.title,
               caption: article.title,
               creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
               license: article.imageLicense,
-            }}
-          />
-        )}
+            }), null, 2),
+          }}
+        />
+      )}
+      <div className="flex flex-col">
+        <ScrollToTop />
 
         {/* Breadcrumbs */}
         <div className="relative border-b border-border/50 bg-gradient-to-r from-card/40 via-card/20 to-card/40 backdrop-blur-sm">
@@ -167,13 +217,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   label:
                     article.category === "tyzdenny-vyber"
                       ? "Týždenný výber"
-                      : article.category === "komunita"
-                      ? "Komunita"
+                      : article.category === "news"
+                      ? "Vesmírne novinky"
                       : article.category
                           .split("-")
                           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                           .join(" "),
-                  href: article.category === "komunita" ? "/kategoria/komunita" : `/kategoria/${article.category}`,
+                  href: article.category === "news" ? "/kategoria/vesmirne-novinky" : `/kategoria/${article.category}`,
                 },
                 { label: article.title },
               ]}
@@ -181,9 +231,41 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
         </div>
 
-        {/* Article Header */}
-        <article className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          <header className="mb-8">
+        {/* Conditional rendering for news articles */}
+        {article.category === "news" && article.type === "news" ? (
+          <SpaceArticleTemplate 
+            data={{
+              headline: article.title,
+              perex: article.perex,
+              body: article.content ? (Array.isArray(article.content) ? article.content.map(section => section.content) : [article.content]) : [],
+              subheads: article.subheads || [],
+              hero: {
+                src: article.heroImage?.src || article.imageUrl || "/placeholder.svg",
+                alt: article.heroImage?.alt || article.title,
+                credit: article.heroImage?.credit
+              },
+                      inline: article.inlineImage ? {
+                        src: article.inlineImage.src,
+                        alt: article.inlineImage.alt,
+                        credit: article.inlineImage.credit
+                      } : undefined,
+                      inline2: article.inlineImage2 ? {
+                        src: article.inlineImage2.src,
+                        alt: article.inlineImage2.alt,
+                        credit: article.inlineImage2.credit
+                      } : undefined,
+              author: article.author,
+              publishedAt: article.publishedAt,
+              category: article.category,
+              originalUrl: article.sourceUrl,
+              cta: article.cta
+            }}
+          />
+        ) : (
+          <>
+            {/* Article Header */}
+            <article className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+              <header className="mb-8">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <CategoryBadge category={article.category} />
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -212,8 +294,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <p className="text-pretty text-xl leading-relaxed text-muted-foreground">{article.perex}</p>
           </header>
 
-          {/* Hero Image - Only show for non-komunita articles */}
-          {article.category !== 'komunita' && (
+          {/* Hero Image - Only show for non-news articles */}
+          {article.category !== 'news' && (
             <div className="mb-8">
               <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
               <Image
@@ -288,8 +370,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
           {/* Source and Credits */}
           <div className="mt-8 space-y-4">
-            {/* Image Source - Only for non-komunita articles */}
-            {article.source && article.category !== 'komunita' && (
+            {/* Image Source - Only for non-news articles */}
+            {article.source && article.category !== 'news' && (
               <div className="rounded-lg border border-border bg-card/50 p-6">
                 <div className="flex items-start gap-3">
                   <ExternalLink className="mt-1 h-5 w-5 text-muted-foreground" />
@@ -301,8 +383,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </div>
             )}
             
-            {/* Reddit source for komunita articles */}
-            {article.category === 'komunita' && article.sourceUrl && (
+            {/* Source for news articles */}
+            {article.category === 'news' && article.sourceUrl && (
               <div className="rounded-lg border border-border bg-card/50 p-6">
                 <div className="flex items-start gap-3">
                   <ExternalLink className="mt-1 h-5 w-5 text-muted-foreground" />
@@ -353,6 +435,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           {/* Image License Information - moved to end of article */}
           <ImageLicenseInfo article={article} />
         </article>
+          </>
+        )}
 
         {/* Related Articles */}
         {relatedArticles.length > 0 && (
