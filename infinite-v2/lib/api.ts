@@ -144,7 +144,9 @@ export class ArticlesAPI {
 
   static async getArticleBySlug(slug: string): Promise<ArticleDetail | null> {
     try {
-      const response = await this.makeRequest(`/articles/slug/${slug}`);
+      // URL encode the slug to handle diacritics and special characters
+      const encodedSlug = encodeURIComponent(slug);
+      const response = await this.makeRequest(`/articles/slug/${encodedSlug}`);
       return response;
     } catch (error) {
       console.error('Error fetching article by slug:', error);

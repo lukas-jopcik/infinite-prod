@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'infinite-images-dev-349660737637.s3.eu-central-1.amazonaws.com',
         port: '',
-        pathname: '/images/**',
+        pathname: '/**',
       },
     ],
     formats: ['image/webp', 'image/avif'],
@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [25, 50, 60, 75, 80, 90, 95, 100], // Add quality configuration
+    // Add loader configuration for better error handling
+    loader: 'default',
+    // Add domains for additional compatibility
+    domains: ['infinite-images-dev-349660737637.s3.eu-central-1.amazonaws.com'],
   },
 
   // Compression and optimization
