@@ -4,14 +4,17 @@ const nextConfig: NextConfig = {
   // Set the correct workspace root to avoid lockfile warnings
   outputFileTracingRoot: __dirname,
   
+  // Disable static export for SSR/ISR
+  output: undefined,
+  
   // Performance optimizations
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to build issues
   },
   
-  // Image optimization - temporarily disable for debugging
+  // Image optimization - re-enabled after debugging
   images: {
-    unoptimized: true, // Disable Next.js image optimization temporarily
+    unoptimized: false, // Re-enable Next.js image optimization
     remotePatterns: [
       {
         protocol: 'https',

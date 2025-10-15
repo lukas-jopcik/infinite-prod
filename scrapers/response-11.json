@@ -1,1 +1,0 @@
-{"statusCode":200,"body":"{\"message\":\"Bulk upload completed\",\"totalEntries\":100,\"uploaded\":25,\"failed\":75,\"successRate\":\"25.00%\",\"estimatedCost\":{\"writeRequests\":25,\"writeCost\":\"$0.0000\",\"estimatedStorageGB\":\"0.025\",\"storageCostMonthly\":\"$0.0063\",\"totalCost\":\"$0.0063\"},\"environment\":\"dev\",\"table\":\"InfiniteRawContent-dev\"}"}

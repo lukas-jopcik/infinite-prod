@@ -53,7 +53,7 @@ async function HomePageContent() {
     const discoveryPromise = ArticlesAPI.getArticlesByCategory("objav-dna", 12).catch(() => ({ articles: [] }));
     // Get articles from other categories in parallel (including weekly picks)
     const [communityResponse, weeklyResponse] = await Promise.all([
-      ArticlesAPI.getArticlesByCategory("komunita", 6).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("news", 6).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 12).catch(() => ({ articles: [] })),
     ]);
     const discoveryResponse = await discoveryPromise;
@@ -146,7 +146,7 @@ async function HomePageContent() {
                 perex={article.perex}
                 category={article.category}
                 date={article.originalDate || article.publishedAt}
-                image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
+                image={article.imageUrl || (article.category === 'news' ? null : '/placeholder-astronomy.jpg')}
                 imageAlt={article.title}
                 author={article.author}
                 source="Infinite AI"
@@ -184,10 +184,10 @@ async function HomePageContent() {
         <section className="border-y border-border bg-card/30 py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-foreground">Komunita</h2>
+              <h2 className="text-3xl font-bold text-foreground">Vesmírne novinky</h2>
               <Button variant="ghost" asChild>
-                <Link href="/kategoria/komunita" className="flex items-center gap-2">
-                  Viac z komunity
+                <Link href="/kategoria/vesmirne-novinky" className="flex items-center gap-2">
+                  Viac noviniek
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -201,7 +201,7 @@ async function HomePageContent() {
                   perex={article.perex}
                   category={article.category}
                   date={article.originalDate || article.publishedAt}
-                  image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
+                  image={article.imageUrl || (article.category === 'news' ? null : '/placeholder-astronomy.jpg')}
                   imageAlt={article.title}
                   author={article.author}
                   source="Infinite AI"

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
-  { name: "Komunita", slug: "komunita" },
+  { name: "Vesmírne novinky", slug: "vesmirne-novinky" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
 ]
 
@@ -64,6 +64,17 @@ export function Footer() {
               <li>
                 <Link href="/hladat" className="text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer" prefetch={true} scroll={true} shallow={false}>
                   Vyhľadávanie
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/ochrana-udajov"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                  prefetch={true}
+                  scroll={true}
+                  shallow={false}
+                >
+                  Ochrana údajov
                 </Link>
               </li>
             </ul>

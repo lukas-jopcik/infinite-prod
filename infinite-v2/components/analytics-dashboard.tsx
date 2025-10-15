@@ -46,7 +46,7 @@ export function AnalyticsDashboard() {
           ],
           topCategories: [
             { category: 'objav-dna', views: 8920 },
-            { category: 'komunita', views: 2340 },
+            { category: 'news', views: 2340 },
             { category: 'vzdelavanie', views: 1270 }
           ],
           deviceTypes: [

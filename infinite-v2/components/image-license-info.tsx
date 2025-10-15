@@ -6,8 +6,8 @@ interface ImageLicenseInfoProps {
 }
 
 export function ImageLicenseInfo({ article }: ImageLicenseInfoProps) {
-  // Skip rendering for komunita articles (they don't have images)
-  if (article.category === 'komunita') {
+  // Skip rendering for news articles (they have their own image handling)
+  if (article.category === 'news') {
     return null
   }
   

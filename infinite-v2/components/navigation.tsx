@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
-  { name: "Komunita", slug: "komunita" },
+  { name: "Vesmírne novinky", slug: "news" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
 ]
 
@@ -29,7 +29,7 @@ export function Navigation() {
             {categories.map((category) => (
               <Link
                 key={category.slug}
-                href={`/kategoria/${category.slug}`}
+                href={category.slug === 'news' ? `/kategoria/vesmirne-novinky` : `/kategoria/${category.slug}`}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
                 prefetch={true}
                 scroll={true}
@@ -72,7 +72,7 @@ export function Navigation() {
             {categories.map((category) => (
               <Link
                 key={category.slug}
-                href={`/kategoria/${category.slug}`}
+                href={category.slug === 'news' ? `/kategoria/vesmirne-novinky` : `/kategoria/${category.slug}`}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
                 onClick={() => setMobileMenuOpen(false)}
                 prefetch={true}

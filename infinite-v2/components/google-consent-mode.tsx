@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Settings, Shield, BarChart3 } from 'lucide-react'
+import { X, Settings, Shield, BarChart3, Lock, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { PRIVACY_CONFIG } from '@/lib/config'
 
 interface ConsentState {
   ad_storage: 'granted' | 'denied'
@@ -129,13 +131,42 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
               </div>
               
               <div className="space-y-6">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground mb-4">
                   Táto stránka používa cookies a podobné technológie na poskytovanie služieb, 
                   personalizáciu obsahu a analýzu návštevnosti. Môžete si vybrať, ktoré cookies 
                   chcete povoliť.
                 </div>
+                
+                <div className="mb-6">
+                  <Link 
+                    href={PRIVACY_CONFIG.privacyPageUrl}
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Viac informácií o ochrane údajov a cookies
+                  </Link>
+                </div>
 
                 <div className="space-y-4">
+                  {/* Necessary Cookies - Always Enabled */}
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <Lock className="h-5 w-5 text-green-500" />
+                      <div>
+                        <h3 className="font-medium text-foreground">Nevyhnutné cookies</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Potrebné pre základné fungovanie stránky (vždy aktívne)
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          • Session cookies • Bezpečnostné cookies • Nastavenia súhlasu
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-green-500">
+                      <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                     <div className="flex items-center gap-3">
                       <BarChart3 className="h-5 w-5 text-blue-500" />
@@ -143,6 +174,9 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
                         <h3 className="font-medium text-foreground">Analytické cookies</h3>
                         <p className="text-sm text-muted-foreground">
                           Pomáhajú nám pochopiť, ako návštevníci používajú stránku
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          • Google Analytics • Výkonnostné metriky • Doba platnosti: {PRIVACY_CONFIG.cookieConsent.expiry} dní
                         </p>
                       </div>
                     </div>
@@ -162,11 +196,14 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
 
                   <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                     <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-green-500" />
+                      <Shield className="h-5 w-5 text-orange-500" />
                       <div>
                         <h3 className="font-medium text-foreground">Reklamné cookies</h3>
                         <p className="text-sm text-muted-foreground">
                           Používajú sa na zobrazovanie relevantných reklám
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          • Google AdSense • Reklamné metriky • Doba platnosti: {PRIVACY_CONFIG.cookieConsent.expiry} dní
                         </p>
                       </div>
                     </div>
@@ -191,6 +228,9 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
                         <h3 className="font-medium text-foreground">Personalizácia reklám</h3>
                         <p className="text-sm text-muted-foreground">
                           Umožňuje zobrazovať personalizované reklamy
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          • Cielené reklamy • Záujmy používateľa • Doba platnosti: {PRIVACY_CONFIG.cookieConsent.expiry} dní
                         </p>
                       </div>
                     </div>
@@ -237,10 +277,29 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
                 </button>
               </div>
               
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-sm text-muted-foreground mb-4">
                 Táto stránka používa reklamy na poskytovanie bezplatného obsahu. 
                 Súhlasíte s ich zobrazovaním a používaním analytických cookies?
               </p>
+              
+              <div className="mb-4 p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground mb-2">
+                  <strong>Doba platnosti súhlasu:</strong> {PRIVACY_CONFIG.cookieConsent.expiry} dní
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Posledná aktualizácia:</strong> {new Date(PRIVACY_CONFIG.lastUpdated).toLocaleDateString('sk-SK')}
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <Link 
+                  href={PRIVACY_CONFIG.privacyPageUrl}
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Viac informácií o ochrane údajov
+                </Link>
+              </div>
               
               <div className="flex gap-3">
                 <button

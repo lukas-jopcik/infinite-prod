@@ -1,164 +1,155 @@
-/**
- * Redis-based caching layer for frequently accessed data
- * Provides sub-millisecond access to cached articles and categories
- */
+import { Article } from './api';
 
-interface CacheConfig {
-  host: string;
-  port: number;
-  password?: string;
-  ttl: number; // Time to live in seconds
+// Redis connection configuration - only on server side
+let redis: any = null;
+
+if (typeof window === 'undefined') {
+  // Only import Redis on server side
+  const Redis = require('ioredis');
+  redis = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+  });
 }
 
-class CacheManager {
+// Cache keys generator
+export const CacheKeys = {
+  articlesByCategory: (category: string) => `articles:category:${category}`,
+  articleById: (id: string) => `article:id:${id}`,
+  articleBySlug: (slug: string) => `article:slug:${slug}`,
+  latestArticles: (limit: number) => `articles:latest:${limit}`,
+  searchArticles: (query: string, limit: number) => `articles:search:${query}:${limit}`,
+};
+
+// Cache utility class
+export class Cache {
+  private static instance: Cache;
   private redis: any;
-  private config: CacheConfig;
 
   constructor() {
-    this.config = {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      ttl: parseInt(process.env.CACHE_TTL || '300'), // 5 minutes default
-    };
-    
-    // Initialize Redis client only if Redis is available
-    if (process.env.REDIS_ENABLED === 'true') {
-      try {
-        const Redis = require('ioredis');
-        this.redis = new Redis({
-          host: this.config.host,
-          port: this.config.port,
-          password: this.config.password,
-          retryDelayOnFailover: 100,
-          maxRetriesPerRequest: 3,
-          lazyConnect: true,
-        });
-      } catch (error) {
-        console.warn('Redis not available, using in-memory cache:', error);
-        this.redis = null;
-      }
-    }
+    this.redis = redis;
   }
 
-  /**
-   * Get cached data by key
-   */
+  static getInstance(): Cache {
+    if (!Cache.instance) {
+      Cache.instance = new Cache();
+    }
+    return Cache.instance;
+  }
+
+  // Generic cache methods
   async get<T>(key: string): Promise<T | null> {
-    if (!this.redis) return null;
+    if (!redis) {
+      console.warn('[Cache] Redis not available on client side');
+      return null;
+    }
     
     try {
-      const data = await this.redis.get(key);
-      return data ? JSON.parse(data) : null;
+      const value = await redis.get(key);
+      return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      console.error('[Cache] Error getting key:', key, error);
       return null;
     }
   }
 
-  /**
-   * Set cached data with TTL
-   */
-  async set(key: string, data: any, ttl?: number): Promise<void> {
-    if (!this.redis) return;
+  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
+    if (!redis) {
+      console.warn('[Cache] Redis not available on client side');
+      return;
+    }
     
     try {
-      const serialized = JSON.stringify(data);
-      await this.redis.setex(key, ttl || this.config.ttl, serialized);
+      await redis.setex(key, ttl, JSON.stringify(value));
     } catch (error) {
-      console.error('Cache set error:', error);
+      console.error('[Cache] Error setting key:', key, error);
     }
   }
 
-  /**
-   * Delete cached data
-   */
   async del(key: string): Promise<void> {
-    if (!this.redis) return;
+    if (!redis) {
+      console.warn('[Cache] Redis not available on client side');
+      return;
+    }
     
     try {
-      await this.redis.del(key);
+      await redis.del(key);
     } catch (error) {
-      console.error('Cache delete error:', error);
+      console.error('[Cache] Error deleting key:', key, error);
     }
   }
 
-  /**
-   * Cache articles by category with intelligent invalidation
-   */
-  async cacheArticlesByCategory(category: string, articles: any[]): Promise<void> {
-    const key = `articles:category:${category}`;
-    await this.set(key, articles, 300); // 5 minutes cache
+  // Article-specific cache methods
+  async getCachedArticlesByCategory(category: string): Promise<Article[] | null> {
+    return this.get<Article[]>(CacheKeys.articlesByCategory(category));
   }
 
-  /**
-   * Get cached articles by category
-   */
-  async getCachedArticlesByCategory(category: string): Promise<any[] | null> {
-    const key = `articles:category:${category}`;
-    return await this.get(key);
+  async cacheArticlesByCategory(category: string, articles: Article[]): Promise<void> {
+    await this.set(CacheKeys.articlesByCategory(category), articles, 1800); // 30 minutes
   }
 
-  /**
-   * Cache article by slug
-   */
-  async cacheArticleBySlug(slug: string, article: any): Promise<void> {
-    const key = `article:slug:${slug}`;
-    await this.set(key, article, 600); // 10 minutes cache for individual articles
+  async getCachedArticleById(id: string): Promise<Article | null> {
+    return this.get<Article>(CacheKeys.articleById(id));
   }
 
-  /**
-   * Get cached article by slug
-   */
-  async getCachedArticleBySlug(slug: string): Promise<any | null> {
-    const key = `article:slug:${slug}`;
-    return await this.get(key);
+  async cacheArticleById(id: string, article: Article): Promise<void> {
+    await this.set(CacheKeys.articleById(id), article, 3600); // 1 hour
   }
 
-  /**
-   * Invalidate cache when articles are updated
-   */
+  async getCachedArticleBySlug(slug: string): Promise<Article | null> {
+    return this.get<Article>(CacheKeys.articleBySlug(slug));
+  }
+
+  async cacheArticleBySlug(slug: string, article: Article): Promise<void> {
+    await this.set(CacheKeys.articleBySlug(slug), article, 3600); // 1 hour
+  }
+
+  async getCachedLatestArticles(limit: number): Promise<Article[] | null> {
+    return this.get<Article[]>(CacheKeys.latestArticles(limit));
+  }
+
+  async cacheLatestArticles(limit: number, articles: Article[]): Promise<void> {
+    await this.set(CacheKeys.latestArticles(limit), articles, 900); // 15 minutes
+  }
+
+  // Cache invalidation methods
   async invalidateCategory(category: string): Promise<void> {
-    const key = `articles:category:${category}`;
-    await this.del(key);
+    await this.del(CacheKeys.articlesByCategory(category));
   }
 
-  /**
-   * Invalidate specific article cache
-   */
-  async invalidateArticle(slug: string): Promise<void> {
-    const key = `article:slug:${slug}`;
-    await this.del(key);
+  async invalidateArticle(id: string, slug?: string): Promise<void> {
+    await this.del(CacheKeys.articleById(id));
+    if (slug) {
+      await this.del(CacheKeys.articleBySlug(slug));
+    }
   }
 
-  /**
-   * Get cache statistics
-   */
-  async getStats(): Promise<any> {
-    if (!this.redis) return null;
+  // Health check
+  async isHealthy(): Promise<boolean> {
+    if (!redis) {
+      return false;
+    }
     
     try {
-      const info = await this.redis.info('memory');
-      return {
-        connected: true,
-        memory: info,
-      };
+      await redis.ping();
+      return true;
     } catch (error) {
-      return {
-        connected: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      console.error('[Cache] Health check failed:', error);
+      return false;
+    }
+  }
+
+  // Close connection
+  async close(): Promise<void> {
+    if (redis) {
+      await redis.quit();
     }
   }
 }
 
-// Singleton instance
-export const cache = new CacheManager();
-
-// Cache key generators
-export const CacheKeys = {
-  articlesByCategory: (category: string) => `articles:category:${category}`,
-  articleBySlug: (slug: string) => `article:slug:${slug}`,
-  latestArticles: (limit: number) => `articles:latest:${limit}`,
-  sitemap: () => 'sitemap:all',
-} as const;
+// Export singleton instance
+export const cache = Cache.getInstance();

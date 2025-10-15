@@ -132,7 +132,7 @@ export function CategoryArticles({
         ) : (
           articles && articles.length > 0 ? articles.map((article) => {
             // Use CommunityArticleCard for community articles
-            if (article.category === 'komunita') {
+            if (article.category === 'news') {
               return (
                 <CommunityArticleCard 
                   key={article.slug} 

@@ -1,31 +1,33 @@
-/**
- * Configuration for APOD Archive Scraper
- */
-
 module.exports = {
     // Scraping configuration
-    batchSize: 50,                    // Number of entries to process in parallel
-    delayMs: 2000,                    // Delay between batches (rate limiting)
+    RATE_LIMIT_MS: 500, // 500ms between requests
+    RETRY_ATTEMPTS: 3,
+    RETRY_DELAY_MS: 2000, // Initial retry delay (exponential backoff)
     
-    // Year range filter
-    startYear: 2020,                  // Start year for scraping
-    endYear: 2025,                    // End year for scraping
+    // Date range for scraping
+    START_YEAR: 2024,
+    START_MONTH: 1,
+    START_DAY: 1,
+    END_YEAR: 2025,
+    END_MONTH: 10,
+    END_DAY: 12, // Current date
     
     // URLs
-    archiveUrl: 'https://apod.nasa.gov/apod/archivepixFull.html',
+    ARCHIVE_URL: 'https://apod.nasa.gov/apod/archivepixFull.html',
+    APOD_BASE_URL: 'https://apod.nasa.gov/apod/',
     
-    // Output configuration
-    outputDir: __dirname,             // Directory for output files
-    outputPrefix: 'apod-archive',     // Prefix for output files
+    // Output files
+    OUTPUT_FILE: 'apod-archive-data.json',
+    PROGRESS_FILE: 'progress.json',
+    LOG_FILE: 'scraper.log',
     
-    // Data structure configuration
-    environment: 'dev',               // Environment for DynamoDB
-    source: 'apod',                   // Source identifier
+    // Progress save interval
+    PROGRESS_SAVE_INTERVAL: 10, // Save progress every 10 articles
     
-    // Retry configuration
-    maxRetries: 3,                    // Maximum retry attempts for failed requests
-    retryDelayMs: 5000,               // Delay between retries
-    
-    // Progress reporting
-    progressInterval: 100,            // Report progress every N entries
+    // Data format
+    DEFAULT_CATEGORY: 'objav-dna',
+    DEFAULT_STATUS: 'raw',
+    DEFAULT_ENVIRONMENT: 'dev',
+    SOURCE: 'apod'
 };
+

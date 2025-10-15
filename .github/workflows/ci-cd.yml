@@ -1,0 +1,408 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+env:
+  NODE_VERSION: '18'
+  AWS_REGION: 'eu-central-1'
+
+jobs:
+  # Pre-deployment tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration, api, e2e, aws, performance]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd infinite-v2 && npm ci
+
+    - name: Run ${{ matrix.test-type }} tests
+      run: |
+        case "${{ matrix.test-type }}" in
+          "unit")
+            npm run test:unit:lambda
+            npm run test:unit:frontend
+            ;;
+          "integration")
+            npm run test:integration
+            ;;
+          "api")
+            npm run test:api
+            ;;
+          "e2e")
+            npm run test:e2e
+            ;;
+          "aws")
+            npm run test:aws
+            ;;
+          "performance")
+            npm run test:performance
+            ;;
+        esac
+      env:
+        NODE_ENV: test
+        AWS_REGION: ${{ env.AWS_REGION }}
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.test-type }}
+        path: |
+          coverage/
+          logs/
+        retention-days: 30
+
+  # Code quality checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd infinite-v2 && npm ci
+
+    - name: Run ESLint
+      run: |
+        npx eslint . --ext .js,.ts,.tsx --format json --output-file eslint-report.json
+        cd infinite-v2 && npx eslint . --ext .js,.ts,.tsx --format json --output-file ../eslint-report-frontend.json
+      continue-on-error: true
+
+    - name: Run Prettier
+      run: |
+        npx prettier --check .
+        cd infinite-v2 && npx prettier --check .
+      continue-on-error: true
+
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: quality-reports
+        path: |
+          eslint-report.json
+          eslint-report-frontend.json
+        retention-days: 30
+
+  # Security scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd infinite-v2 && npm ci
+
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level moderate
+        cd infinite-v2 && npm audit --audit-level moderate
+      continue-on-error: true
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # Build and package
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [test, quality, security]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd infinite-v2 && npm ci
+
+    - name: Build frontend
+      run: |
+        cd infinite-v2
+        npm run build
+      env:
+        NODE_ENV: production
+
+    - name: Package Lambda functions
+      run: |
+        mkdir -p dist/lambda
+        for func in aws/lambda/*/; do
+          if [ -f "$func/package.json" ]; then
+            func_name=$(basename "$func")
+            echo "Packaging $func_name..."
+            cd "$func"
+            npm ci --production
+            zip -r "../../dist/lambda/$func_name.zip" . -x "*.git*" "*.test.*" "*.spec.*"
+            cd - > /dev/null
+          fi
+        done
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          dist/
+          infinite-v2/.next/
+        retention-days: 7
+
+  # Deploy to development
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    environment: development
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy Lambda functions
+      run: |
+        for zip_file in dist/lambda/*.zip; do
+          if [ -f "$zip_file" ]; then
+            func_name=$(basename "$zip_file" .zip)
+            echo "Deploying $func_name..."
+            aws lambda update-function-code \
+              --function-name "infinite-nasa-apod-dev-$func_name" \
+              --zip-file "fileb://$zip_file"
+          fi
+        done
+
+    - name: Deploy frontend
+      run: |
+        cd infinite-v2
+        npm run deploy:dev
+
+    - name: Run post-deployment tests
+      run: |
+        chmod +x scripts/smoke-tests/*.sh
+        ./scripts/smoke-tests/deployment-verification.sh -e dev -d ${{ github.sha }}
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy Lambda functions
+      run: |
+        for zip_file in dist/lambda/*.zip; do
+          if [ -f "$zip_file" ]; then
+            func_name=$(basename "$zip_file" .zip)
+            echo "Deploying $func_name..."
+            aws lambda update-function-code \
+              --function-name "infinite-nasa-apod-staging-$func_name" \
+              --zip-file "fileb://$zip_file"
+          fi
+        done
+
+    - name: Deploy frontend
+      run: |
+        cd infinite-v2
+        npm run deploy:staging
+
+    - name: Run post-deployment tests
+      run: |
+        chmod +x scripts/smoke-tests/*.sh
+        ./scripts/smoke-tests/deployment-verification.sh -e staging -d ${{ github.sha }}
+
+  # Deploy to production
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy Lambda functions
+      run: |
+        for zip_file in dist/lambda/*.zip; do
+          if [ -f "$zip_file" ]; then
+            func_name=$(basename "$zip_file" .zip)
+            echo "Deploying $func_name..."
+            aws lambda update-function-code \
+              --function-name "infinite-nasa-apod-prod-$func_name" \
+              --zip-file "fileb://$zip_file"
+          fi
+        done
+
+    - name: Deploy frontend
+      run: |
+        cd infinite-v2
+        npm run deploy:prod
+
+    - name: Run post-deployment tests
+      run: |
+        chmod +x scripts/smoke-tests/*.sh
+        ./scripts/smoke-tests/deployment-verification.sh -e prod -d ${{ github.sha }}
+
+    - name: Run production smoke tests
+      run: |
+        ./scripts/smoke-tests/production-smoke-test.sh -e prod
+
+  # Health monitoring
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-dev, deploy-staging, deploy-prod]
+    if: always() && (needs.deploy-dev.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-prod.result == 'success')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Run health check
+      run: |
+        chmod +x scripts/smoke-tests/*.sh
+        if [ "${{ needs.deploy-dev.result }}" == "success" ]; then
+          ./scripts/smoke-tests/health-check.sh -e dev
+        fi
+        if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
+          ./scripts/smoke-tests/health-check.sh -e staging
+        fi
+        if [ "${{ needs.deploy-prod.result }}" == "success" ]; then
+          ./scripts/smoke-tests/health-check.sh -e prod
+        fi
+
+  # Notification
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [test, quality, security, build, deploy-dev, deploy-staging, deploy-prod, health-check]
+    if: always()
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: |
+          Deployment Status: ${{ job.status }}
+          Environment: ${{ github.event.inputs.environment || 'auto' }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

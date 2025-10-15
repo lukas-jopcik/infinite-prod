@@ -432,6 +432,12 @@ async function getArticleBySlug(slug, headers) {
             source: item.source,
             sourceUrl: item.sourceUrl,
             tags: item.tags || [],
+            // News article specific fields
+            subheads: item.subheads,
+            heroImage: item.heroImage,
+            inlineImage: item.inlineImage,
+            inlineImage2: item.inlineImage2,
+            cta: item.cta,
             // Image license fields
             imageLicense: item.imageLicense,
             imageCreditText: item.imageCreditText,

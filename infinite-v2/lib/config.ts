@@ -49,11 +49,29 @@ export const SITE_CONFIG = {
   timezone: 'Europe/Bratislava'
 }
 
+// Privacy and Legal Configuration
+export const PRIVACY_CONFIG = {
+  privacyPageUrl: '/ochrana-udajov',
+  contactEmail: 'info@infinite.sk',
+  lastUpdated: new Date().toISOString(),
+  gdprCompliant: true,
+  cookieConsent: {
+    required: true,
+    categories: ['necessary', 'analytics', 'advertising'],
+    expiry: 365 // days
+  },
+  dataRetention: {
+    analytics: 26, // months
+    userData: 12, // months
+    cookies: 365 // days
+  }
+}
+
 // Content Configuration
 export const CONTENT_CONFIG = {
   categories: [
     { slug: 'objav-dna', name: 'Objav dňa', description: 'Denné objavy z vesmíru' },
-    { slug: 'komunita', name: 'Komunita', description: 'Články od komunity' },
+    { slug: 'news', name: 'Vesmírne novinky', description: 'Najnovšie vesmírne novinky' },
     { slug: 'vzdelavanie', name: 'Vzdelávanie', description: 'Vzdelávacie materiály' },
     { slug: 'technologie', name: 'Technológie', description: 'Vesmírne technológie' }
   ],

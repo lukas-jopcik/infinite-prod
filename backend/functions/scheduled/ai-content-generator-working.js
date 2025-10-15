@@ -216,78 +216,66 @@ async function getSpecificRawContent(contentId, source) {
 }
 
 /**
- * Get raw content items that need processing - optimized with GSI
+ * Check if article already exists for given contentId
+ */
+async function checkArticleExists(contentId) {
+    try {
+        const params = {
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'rawContentId = :contentId',
+            ExpressionAttributeValues: {
+                ':contentId': contentId
+            },
+            Limit: 1
+        };
+        const result = await dynamodb.send(new ScanCommand(params));
+        return result.Items && result.Items.length > 0;
+    } catch (error) {
+        console.error('Error checking article existence:', error);
+        return false;
+    }
+}
+
+/**
+ * Get raw content items that need processing - Sequential processing (1 article at a time)
  */
 async function getRawContentForProcessing() {
     try {
-        console.log('Getting raw content for processing...');
+        console.log('Getting raw content for processing (sequential mode)...');
         
-        // Try GSI first, fallback to scan if GSI is not ready
-        let result;
-        try {
-            // Use GSI for efficient querying by status
-            const params = {
-                TableName: RAW_CONTENT_TABLE,
-                IndexName: 'status-index',
-                KeyConditionExpression: '#status = :status',
-                ExpressionAttributeNames: {
-                    '#status': 'status'
-                },
-                ExpressionAttributeValues: {
-                    ':status': 'raw'
-                }
-            };
-            
-            console.log('DynamoDB GSI query params:', JSON.stringify(params, null, 2));
-            result = await dynamodb.send(new QueryCommand(params));
-            
-        } catch (gsiError) {
-            console.log('GSI not ready, falling back to scan:', gsiError.message);
-            // Fallback to scan if GSI is not ready
-            const scanParams = {
-                TableName: RAW_CONTENT_TABLE,
-                FilterExpression: '#status = :status',
-                ExpressionAttributeNames: {
-                    '#status': 'status'
-                },
-                ExpressionAttributeValues: {
-                    ':status': { S: 'raw' }
-                }
-            };
-            
-            console.log('DynamoDB scan params:', JSON.stringify(scanParams, null, 2));
-            result = await dynamodbRaw.send(new ScanCommand(scanParams));
+        // Scan for RAW articles with IMAGE type only
+        const scanParams = {
+            TableName: RAW_CONTENT_TABLE,
+            FilterExpression: '#status = :rawStatus AND mediaType = :imageType',
+            ExpressionAttributeNames: {
+                '#status': 'status'
+            },
+            ExpressionAttributeValues: {
+                ':rawStatus': 'raw',
+                ':imageType': 'image'
+            }
+        };
+        
+        console.log('DynamoDB scan params:', JSON.stringify(scanParams, null, 2));
+        const result = await dynamodb.send(new ScanCommand(scanParams));
+        
+        console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} raw image articles`);
+        
+        if (!result.Items || result.Items.length === 0) {
+            console.log('No raw content found for processing');
+            return [];
         }
         
-        console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} items`);
+        // Sort by date descending (newest first)
+        const sortedItems = result.Items.sort((a, b) => {
+            return new Date(b.date) - new Date(a.date);
+        });
         
-        if (result.Items && result.Items.length > 0) {
-            // Convert raw DynamoDB items to DocumentClient format if needed
-            const convertedItems = result.Items.map(item => {
-                // If using GSI query, items are already in DocumentClient format
-                if (typeof item.status === 'string') {
-                    return item;
-                }
-                
-                // If using scan, convert from raw DynamoDB format
-                const converted = {};
-                for (const [key, value] of Object.entries(item)) {
-                    if (value.S) converted[key] = value.S;
-                    else if (value.N) converted[key] = value.N;
-                    else if (value.BOOL !== undefined) converted[key] = value.BOOL;
-                    else if (value.SS) converted[key] = value.SS;
-                    else if (value.NS) converted[key] = value.NS;
-                    else if (value.L) converted[key] = value.L;
-                    else if (value.M) converted[key] = value.M;
-                }
-                return converted;
-            });
-            
-            console.log('Found items:', convertedItems.map(item => ({ contentId: item.contentId, source: item.source, status: item.status })));
-            return convertedItems;
-        }
+        // Return only the FIRST (newest) article
+        const itemToProcess = sortedItems[0];
+        console.log(`Found ${sortedItems.length} raw articles, processing: ${itemToProcess.date} - ${itemToProcess.title}`);
         
-        return [];
+        return [itemToProcess];
         
     } catch (error) {
         console.error('Error getting raw content for processing:', error);
@@ -626,7 +614,7 @@ async function processImages(rawItem, generatedContent) {
         const processedImages = {};
         
         // Get the main image URL
-        const imageUrl = rawItem.imageUrl || rawItem.media_url;
+        const imageUrl = rawItem.url || rawItem.imageUrl || rawItem.media_url;
         if (!imageUrl) {
             console.log('No image URL found for processing');
             return processedImages;

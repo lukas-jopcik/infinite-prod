@@ -39,7 +39,7 @@ export default function SearchPage() {
           const [discoveryResponse, weeklyResponse, communityResponse] = await Promise.all([
             ArticlesAPI.getArticlesByCategory("objav-dna", 25).catch(() => ({ articles: [] })),
             ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 25).catch(() => ({ articles: [] })),
-            ArticlesAPI.getArticlesByCategory("komunita", 25).catch(() => ({ articles: [] })),
+            ArticlesAPI.getArticlesByCategory("news", 25).catch(() => ({ articles: [] })),
           ])
           
           const combinedArticles = [

@@ -1,17 +1,26 @@
 {
   "name": "apod-archive-scraper",
-  "version": "1.0.0",
-  "description": "Local scraper for NASA APOD archive data",
-  "main": "scrape-apod-archive.js",
+  "version": "2.0.0",
+  "description": "Complete APOD archive scraper for AI content generation",
+  "main": "apod-scraper.js",
   "scripts": {
-    "start": "node scrape-apod-archive.js",
-    "scrape": "node scrape-apod-archive.js"
+    "scrape": "node apod-scraper.js",
+    "test": "node apod-scraper.js --test",
+    "upload": "node upload-to-dynamodb-v2.js"
   },
   "dependencies": {
-    "uuid": "^9.0.0"
+    "@aws-sdk/client-dynamodb": "^3.450.0",
+    "@aws-sdk/lib-dynamodb": "^3.450.0",
+    "axios": "^1.6.0",
+    "rss-parser": "^3.13.0",
+    "uuid": "^8.3.2"
   },
-  "devDependencies": {},
-  "keywords": ["nasa", "apod", "scraper", "astronomy"],
-  "author": "jopcik",
+  "keywords": [
+    "nasa",
+    "apod",
+    "scraper",
+    "astronomy"
+  ],
+  "author": "Infinite",
   "license": "MIT"
 }

@@ -1,5 +1,5 @@
 // API service for fetching articles from Lambda backend
-// import { cache, CacheKeys } from './cache';
+import { cache, CacheKeys } from './cache';
 
 export interface Article {
   id: string;
@@ -41,6 +41,7 @@ export interface Article {
 export interface ArticleDetail extends Article {
   content: { title: string; content: string }[]; // Sections from AI generator
   sections?: { title: string; content: string }[]; // Alias for content
+  subheads?: string[]; // Subheadings for news articles
   faq: { question: string; answer: string }[];
   images?: {
     og?: string;
@@ -48,12 +49,28 @@ export interface ArticleDetail extends Article {
     card?: string;
     thumb?: string;
   };
+  heroImage?: {
+    src: string;
+    alt: string;
+    credit?: string;
+  };
+  inlineImage?: {
+    src: string;
+    alt: string;
+    credit?: string;
+  };
+  inlineImage2?: {
+    src: string;
+    alt: string;
+    credit?: string;
+  };
   keywords?: string[];
   source?: string;
   sourceUrl?: string;
+  cta?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 export class ArticlesAPI {
   private static async makeRequest(endpoint: string, options: RequestInit = {}) {
@@ -141,14 +158,12 @@ export class ArticlesAPI {
     count: number;
   }> {
     try {
-      // TODO: Re-enable cache when ioredis is installed
       // Check cache first
-      // const cacheKey = CacheKeys.articlesByCategory(category);
-      // const cached = await cache.getCachedArticlesByCategory(category);
-      // if (cached) {
-      //   console.log('Cache hit for category:', category);
-      //   return { articles: cached, count: cached.length };
-      // }
+      const cached = await cache.getCachedArticlesByCategory(category);
+      if (cached && !lastKey) {
+        console.log('Cache hit for category:', category);
+        return { articles: cached, count: cached.length };
+      }
 
       const params = new URLSearchParams({ limit: limit.toString() });
       if (lastKey) {
@@ -157,11 +172,10 @@ export class ArticlesAPI {
       
       const response = await this.makeRequest(`/articles/category/${category}?${params.toString()}`);
       
-      // TODO: Re-enable cache when ioredis is installed
       // Cache the result
-      // if (response.articles) {
-      //   await cache.cacheArticlesByCategory(category, response.articles);
-      // }
+      if (response.articles && !lastKey) {
+        await cache.cacheArticlesByCategory(category, response.articles);
+      }
       
       return response;
     } catch (error) {

@@ -72,8 +72,8 @@ export function getArticleMetaDescription(article: {
   switch (category) {
     case 'tyzdenny-vyber':
       return "Týždenný výber z vesmíru na Infinite - najzaujímavejšie objavy a udalosti z astronómie.";
-    case 'komunita':
-      return "Komunitný článok o vesmíre na Infinite - diskusie a názory astronomických nadšencov.";
+    case 'news':
+      return "Vesmírne novinky na Infinite - najnovšie správy a udalosti z vesmíru a astronómie.";
     default:
       return "Objav dňa z vesmíru na Infinite - denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.";
   }
@@ -235,7 +235,7 @@ export function generateArticleMetadata(article: ArticleData): Metadata {
 export function generateCategoryMetadata(category: string, description?: string): Metadata {
   const categoryNames: Record<string, string> = {
     "objav-dna": "Objav dňa",
-    "komunita": "Komunita",
+    "news": "Vesmírne novinky",
     "tyzdenny-vyber": "Týždenný výber",
   }
 

@@ -5,11 +5,13 @@ const { v4: uuidv4 } = require('uuid');
 
 // Environment configuration
 const ENVIRONMENT = process.env.ENVIRONMENT || 'dev';
-const RAW_CONTENT_TABLE = `InfiniteRawContent-${ENVIRONMENT}`;
+const RAW_CONTENT_TABLE = `InfiniteApodArchive-${ENVIRONMENT}`;
 const RSS_FEED_URL = 'https://feeds.feedburner.com/esahubble/images/potw/';
 
 // Initialize DynamoDB client
-const dynamodb = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const REGION = process.env.AWS_REGION || 'eu-central-1';
+console.log('Initializing DynamoDB client with region:', REGION);
+const dynamodb = new DynamoDBClient({ region: REGION });
 const docClient = DynamoDBDocumentClient.from(dynamodb);
 
 // Initialize RSS parser
@@ -104,19 +106,25 @@ async function processFeedItem(item) {
     // Extract image URL from content:encoded
     const imageUrl = extractImageUrl(item['content:encoded']);
     
+    // Generate date string for contentId
+    const dateStr = new Date(item.pubDate).toISOString().split('T')[0]; // YYYY-MM-DD
+    
     // Create content object
     const content = {
-        contentId: uuidv4(),
+        contentId: `esa-hubble-potw-${dateStr}-${uuidv4()}`,
         title: item.title,
         description: item.contentSnippet || item.content || '',
+        explanation: item.contentSnippet || item.content || '',
         url: item.link,
         imageUrl: imageUrl,
         date: new Date(item.pubDate).toISOString(),
         source: 'esa-hubble-potw',
         category: 'tyzdenny-vyber',
+        mediaType: 'image',
         guid: item.guid || item.link,
-        status: 'pending',
+        status: 'raw',
         environment: ENVIRONMENT,
+        fetchedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -230,6 +238,14 @@ async function checkForDuplicate(guid, title, date) {
  */
 async function storeRawContent(content) {
     try {
+        // Ensure content has both contentId and source (composite key)
+        if (!content.contentId || !content.source) {
+            throw new Error('Content must have both contentId and source for composite key');
+        }
+        
+        console.log('Storing content to table:', RAW_CONTENT_TABLE);
+        console.log('Content keys:', { contentId: content.contentId, source: content.source });
+        
         const params = {
             TableName: RAW_CONTENT_TABLE,
             Item: content
@@ -240,6 +256,8 @@ async function storeRawContent(content) {
         
     } catch (error) {
         console.error('Error storing raw content:', error);
+        console.error('Table name:', RAW_CONTENT_TABLE);
+        console.error('Content:', JSON.stringify(content, null, 2));
         throw new Error('Failed to store raw content');
     }
 }

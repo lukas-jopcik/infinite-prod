@@ -8,16 +8,16 @@ export async function GET() {
 
   try {
     // Fetch latest articles from all categories
-    const [objavDnaResponse, komunitaResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, newsResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 20).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("komunita", 10).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("news", 10).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 10).catch(() => ({ articles: [] })),
     ])
 
     // Combine all articles and sort by date
     const allArticles = [
       ...objavDnaResponse.articles,
-      ...komunitaResponse.articles,
+      ...newsResponse.articles,
       ...tyzdennyResponse.articles,
     ].sort((a, b) => 
       new Date(b.originalDate || b.publishedAt).getTime() - 
@@ -61,7 +61,7 @@ export async function GET() {
     }).join('')
 
     const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:content="https://purl.org/rss/1.0/modules/content/">
   <channel>
     <title><![CDATA[${siteName} - Objav dňa z vesmíru]]></title>
     <description><![CDATA[${siteDescription}]]></description>
@@ -95,7 +95,7 @@ export async function GET() {
     
     // Return minimal RSS feed on error
     const fallbackRss = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom">
   <channel>
     <title><![CDATA[${siteName} - Objav dňa z vesmíru]]></title>
     <description><![CDATA[${siteDescription}]]></description>

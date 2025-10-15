@@ -4,12 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run validate:https && next build",
     "start": "next start",
     "lint": "next lint",
     "analyze": "ANALYZE=true next build",
-    "lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-report.json --chrome-flags=\"--headless\" --only-categories=performance",
-    "perf": "npm run build && npm run start & sleep 5 && npm run lighthouse"
+    "lighthouse": "lighthouse https://infinite.sk --output=json --output-path=./lighthouse-report.json --chrome-flags=\"--headless\" --only-categories=performance",
+    "perf": "npm run build && npm run start & sleep 5 && npm run lighthouse",
+    "validate:https": "node scripts/validate-https.js",
+    "validate:https:fix": "node scripts/validate-https.js --fix",
+    "validate:https:verbose": "node scripts/validate-https.js --verbose",
+    "prebuild": "npm run validate:https"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -40,6 +44,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "@types/ioredis": "^4.28.10",
     "@vercel/analytics": "1.3.1",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -49,6 +54,7 @@
     "embla-carousel-react": "8.5.1",
     "geist": "^1.3.1",
     "input-otp": "1.4.1",
+    "ioredis": "^5.8.1",
     "lucide-react": "^0.454.0",
     "next": "15.5.4",
     "next-themes": "^0.4.6",
@@ -62,6 +68,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "web-vitals": "^5.1.0",
     "zod": "3.25.67"
   },
   "devDependencies": {

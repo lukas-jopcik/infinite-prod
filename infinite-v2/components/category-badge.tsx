@@ -7,14 +7,14 @@ interface CategoryBadgeProps {
 
 const categoryColors: Record<string, string> = {
   "objav-dna": "bg-accent/20 text-accent border-accent/40",
-  komunita: "bg-gray-100 text-gray-800 border-gray-300",
+  news: "bg-blue-100 text-blue-800 border-blue-300",
   "tyzdenny-vyber": "bg-chart-4/20 text-chart-4 border-chart-4/40",
 }
 
 const categoryLabels: Record<string, string> = {
   "objav-dna": "Objav Dňa",
   "tyzdenny-vyber": "Týždenný výber",
-  "komunita": "Komunita",
+  "news": "Vesmírne novinky",
 }
 
 export function CategoryBadge({ category, className }: CategoryBadgeProps) {

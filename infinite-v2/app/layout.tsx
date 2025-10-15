@@ -13,6 +13,8 @@ import { PerformanceMonitor } from "@/components/performance-monitor"
 import { AnalyticsProvider } from "@/components/google-analytics"
 import { AdManager } from "@/components/ad-manager"
 import { GoogleConsentMode } from "@/components/google-consent-mode"
+import { WebVitalsMonitor } from "@/components/web-vitals-monitor"
+import { SearchConsoleMonitor } from "@/components/search-console-monitor"
 import { GOOGLE_VERIFICATION_CONFIG } from "@/lib/config"
 import { Suspense } from "react"
 import { SpaceLoading } from "@/components/space-loading"
@@ -22,12 +24,6 @@ export const metadata: Metadata = {
   description: "Denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.",
   generator: "v0.app",
   metadataBase: new URL("https://infinite.sk"),
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -71,6 +67,13 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -88,6 +91,8 @@ export default function RootLayout({
               <Footer />
             </Suspense>
             <PerformanceMonitor />
+            <WebVitalsMonitor />
+            <SearchConsoleMonitor />
           </AdManager>
         </AnalyticsProvider>
       </body>

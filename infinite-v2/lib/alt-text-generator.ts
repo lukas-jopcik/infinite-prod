@@ -66,7 +66,7 @@ function getCategoryContext(category: string): string {
   const categoryMap: Record<string, string> = {
     'objav-dna': 'objav dňa z vesmíru',
     'tyzdenny-vyber': 'týždenný výber',
-    'komunita': 'komunitný príspevok',
+    'news': 'vesmírne novinky',
   }
 
   return categoryMap[category] || 'článok o vesmíre'
@@ -135,7 +135,7 @@ export function generateCategoryAltText(category: string): string {
   const categoryMap: Record<string, string> = {
     'objav-dna': 'Objav dňa z vesmíru - denné astronomické objavy',
     'tyzdenny-vyber': 'Týždenný výber - najlepšie články z vesmíru',
-    'komunita': 'Komunita - príspevky od čitateľov',
+    'news': 'Vesmírne novinky - najnovšie správy z vesmíru',
   }
 
   return categoryMap[category] || `Kategória ${category} - články o vesmíre`

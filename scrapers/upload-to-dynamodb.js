@@ -1,53 +1,101 @@
+#!/usr/bin/env node
+
+/**
+ * Bulk Upload Script for APOD Archive Data to DynamoDB
+ * 
+ * This script uploads scraped APOD articles from apod-archive-data.json
+ * to the InfiniteRawContent-dev table in batches.
+ */
+
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb');
 const fs = require('fs');
 const path = require('path');
 
-// Load the scraped data
-const dataFile = path.join(__dirname, 'apod-archive-2025-10-12.json');
-const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+// Configuration
+const REGION = 'eu-central-1';
+const RAW_CONTENT_TABLE = 'InfiniteRawContent-dev';
+const BATCH_SIZE = 25; // DynamoDB BatchWrite limit
+const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds to avoid throttling
 
-console.log('📊 Data Summary:');
-console.log(`- Total entries: ${data.totalEntries}`);
-console.log(`- Processed: ${data.processedCount}`);
-console.log(`- Errors: ${data.errorCount}`);
-console.log(`- File size: ${(fs.statSync(dataFile).size / 1024 / 1024).toFixed(2)} MB`);
+// Initialize DynamoDB clients
+const client = new DynamoDBClient({ region: REGION });
+const dynamodb = DynamoDBDocumentClient.from(client);
 
-// Prepare payload for Lambda
-const payload = {
-    entries: data.entries
-};
+/**
+ * Upload articles to DynamoDB in batches
+ */
+async function uploadToDb() {
+    try {
+        // Read JSON file
+        const dataPath = path.join(__dirname, 'apod-archive-data.json');
+        console.log(`📂 Reading data from: ${dataPath}`);
+        
+        if (!fs.existsSync(dataPath)) {
+            throw new Error(`File not found: ${dataPath}`);
+        }
+        
+        const fileContent = fs.readFileSync(dataPath, 'utf-8');
+        const articles = JSON.parse(fileContent);
+        
+        console.log(`📊 Total articles to upload: ${articles.length}`);
+        console.log(`📦 Batch size: ${BATCH_SIZE}`);
+        console.log(`⏱️  Delay between batches: ${DELAY_BETWEEN_BATCHES}ms\n`);
+        
+        // Upload in batches
+        let uploadedCount = 0;
+        let errorCount = 0;
+        const totalBatches = Math.ceil(articles.length / BATCH_SIZE);
+        
+        for (let i = 0; i < articles.length; i += BATCH_SIZE) {
+            const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+            const batch = articles.slice(i, i + BATCH_SIZE);
+            
+            try {
+                const params = {
+                    RequestItems: {
+                        [RAW_CONTENT_TABLE]: batch.map(item => ({
+                            PutRequest: { Item: item }
+                        }))
+                    }
+                };
+                
+                await dynamodb.send(new BatchWriteCommand(params));
+                uploadedCount += batch.length;
+                
+                console.log(`✅ Batch ${batchNumber}/${totalBatches}: Uploaded ${batch.length} articles (${uploadedCount}/${articles.length})`);
+                
+                // Delay to avoid throughput exceeded errors
+                if (i + BATCH_SIZE < articles.length) {
+                    await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+                }
+                
+            } catch (batchError) {
+                console.error(`❌ Batch ${batchNumber}/${totalBatches} failed:`, batchError.message);
+                errorCount += batch.length;
+            }
+        }
+        
+        console.log('\n📊 UPLOAD COMPLETE!');
+        console.log('==================================================');
+        console.log(`✅ Successfully uploaded: ${uploadedCount}/${articles.length}`);
+        console.log(`❌ Failed: ${errorCount}/${articles.length}`);
+        console.log(`📁 Table: ${RAW_CONTENT_TABLE}`);
+        console.log(`🌍 Region: ${REGION}`);
+        
+        if (errorCount > 0) {
+            console.log('\n⚠️  Some articles failed to upload. Check the logs above.');
+            process.exit(1);
+        }
+        
+    } catch (error) {
+        console.error('\n❌ UPLOAD FAILED:', error.message);
+        console.error(error);
+        process.exit(1);
+    }
+}
 
-// Save payload for Lambda invocation
-const payloadFile = path.join(__dirname, 'upload-payload.json');
-fs.writeFileSync(payloadFile, JSON.stringify(payload, null, 2));
+// Run the upload
+console.log('🚀 Starting APOD Archive Upload to DynamoDB...\n');
+uploadToDb();
 
-console.log('\n✅ Payload prepared for Lambda upload');
-console.log(`📁 Payload saved to: ${payloadFile}`);
-console.log(`📦 Ready to upload ${data.entries.length} entries to DynamoDB`);
-
-// Calculate estimated cost
-const itemCount = data.entries.length;
-const writeRequestCost = 1.25; // $1.25 per million write requests
-const storageCost = 0.25; // $0.25 per GB per month
-const writeRequests = itemCount;
-const estimatedStorageGB = (itemCount * 0.001); // ~1KB per item
-const writeCost = (writeRequests / 1000000) * writeRequestCost;
-const storageCostMonthly = estimatedStorageGB * storageCost;
-
-console.log('\n💰 Cost Estimate:');
-console.log(`- Write requests: ${writeRequests.toLocaleString()}`);
-console.log(`- Write cost: $${writeCost.toFixed(4)}`);
-console.log(`- Storage: ${estimatedStorageGB.toFixed(3)} GB`);
-console.log(`- Storage cost (monthly): $${storageCostMonthly.toFixed(4)}`);
-console.log(`- Total estimated cost: $${(writeCost + storageCostMonthly).toFixed(4)}`);
-
-console.log('\n🚀 Next Steps:');
-console.log('1. Deploy the Lambda function:');
-console.log('   cd ../backend/functions/scheduled/bulk-upload-apod');
-console.log('   zip -r bulk-upload-apod.zip .');
-console.log('   aws lambda update-function-code --function-name bulk-upload-apod --zip-file fileb://bulk-upload-apod.zip');
-console.log('');
-console.log('2. Invoke the Lambda function:');
-console.log(`   aws lambda invoke --function-name bulk-upload-apod --payload file://${payloadFile} response.json`);
-console.log('');
-console.log('3. Check the response:');
-console.log('   cat response.json | jq .');

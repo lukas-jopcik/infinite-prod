@@ -75,7 +75,7 @@ export default function AboutPage() {
                 <div className="mb-4 inline-flex items-center justify-center rounded-full bg-accent/10 p-3">
                   <Users className="h-6 w-6 text-accent" />
                 </div>
-                <h3 className="mb-2 text-xl font-semibold text-foreground">Komunita</h3>
+                <h3 className="mb-2 text-xl font-semibold text-foreground">Vesmírne novinky</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   Budujeme komunitu ľudí, ktorí sa zaujímajú o vesmír a chcú sa o ňom dozvedieť viac.
                 </p>

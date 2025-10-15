@@ -8,7 +8,7 @@ import type { Metadata } from "next"
 
 const categories = [
   { name: "Objav dňa", slug: "objav-dna", description: "Denné objavy a vizuálne snímky z vesmíru" },
-  { name: "Komunita", slug: "komunita", description: "Zaujímavé objavy a diskusie z astronomickej komunity 🚀" },
+  { name: "Vesmírne novinky", slug: "vesmirne-novinky", description: "Najnovšie správy a udalosti z vesmíru a astronómie 🚀" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber", description: "Kurátorovaný výber najlepších objavov týždňa" },
 ]
 
@@ -48,13 +48,16 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound()
   }
 
+  // Map slug to database category name
+  const dbCategory = slug === 'vesmirne-novinky' ? 'news' : slug
+
   // Fetch initial articles from API using optimized category endpoint
   let initialArticles: Article[] = []
   let initialLastKey: string | undefined
   let totalCount = 0
   
   try {
-    const response = await ArticlesAPI.getArticlesByCategory(slug, 100) // Fetch more for pagination
+    const response = await ArticlesAPI.getArticlesByCategory(dbCategory, 100) // Fetch more for pagination
     if (response && response.articles) {
       initialArticles = response.articles.slice(0, 12) // Show first 12 articles (4 rows)
       initialLastKey = response.lastKey
@@ -91,7 +94,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {initialArticles && initialArticles.length > 0 ? (
           <CategoryArticles
-            category={slug}
+            category={dbCategory}
             initialArticles={initialArticles}
             initialLastKey={initialLastKey}
             initialCount={totalCount}
