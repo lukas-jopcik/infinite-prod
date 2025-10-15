@@ -11,7 +11,7 @@ interface CommunityArticleCardProps {
 }
 
 export function CommunityArticleCard({ article }: CommunityArticleCardProps) {
-  const href = `/clanok/${article.slug}`
+  const href = `/vesmirne-novinky/${article.slug}`
   const formattedDate = formatDateShort(article.originalDate || article.publishedAt)
   const { upvotes, comments, awards, engagementScore } = article.communityEngagement || {}
 

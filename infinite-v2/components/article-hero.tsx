@@ -27,8 +27,10 @@ export function ArticleHero({ slug, title, perex, category, date, image, imageAl
       return `/tyzdenny-vyber/${slug}`
     } else if (category === 'objav-dna') {
       return `/objav-dna/${slug}`
+    } else if (category === 'news') {
+      return `/vesmirne-novinky/${slug}`
     } else {
-      return `/clanok/${slug}`
+      return `/vesmirne-novinky/${slug}` // Default to news for other categories
     }
   }
   

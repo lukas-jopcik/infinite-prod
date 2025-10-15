@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/kategoria/komunita`,
+      url: `${baseUrl}/kategoria/vesmirne-novinky`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
@@ -46,29 +46,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Fetch articles from all categories with increased limits for sitemap
-    const [objavDnaResponse, komunitaResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, newsResponse, tyzdennyResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 1000).catch(() => ({ articles: [] })),
-      ArticlesAPI.getArticlesByCategory("komunita", 200).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("news", 200).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 200).catch(() => ({ articles: [] })),
     ])
 
     // Generate sitemap entries for all articles
     const allArticles = [
       ...objavDnaResponse.articles,
-      ...komunitaResponse.articles,
+      ...newsResponse.articles,
       ...tyzdennyResponse.articles,
     ]
 
     const articlePages: MetadataRoute.Sitemap = allArticles.map((article) => {
       // Use correct URL structure based on category
-      let basePath = 'clanok' // Default for community articles
+      let basePath = 'vesmirne-novinky' // Default changed from 'clanok'
       
       if (article.category === 'tyzdenny-vyber') {
         basePath = 'tyzdenny-vyber'
       } else if (article.category === 'objav-dna') {
         basePath = 'objav-dna'
       }
-      // Community articles and others use 'clanok'
+      // All other articles use 'vesmirne-novinky'
       
       return {
         url: `${baseUrl}/${basePath}/${article.slug}`,

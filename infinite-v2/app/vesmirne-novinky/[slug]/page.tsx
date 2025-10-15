@@ -136,9 +136,8 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
     redirect(`/objav-dna/${slug}`)
   } else if (article.category === "tyzdenny-vyber") {
     redirect(`/tyzdenny-vyber/${slug}`)
-  } else if (article.category !== "news") {
-    redirect(`/clanok/${slug}`)
   }
+  // All other articles stay on /vesmirne-novinky/
 
   return (
     <ArticlePageWrapper article={article}>

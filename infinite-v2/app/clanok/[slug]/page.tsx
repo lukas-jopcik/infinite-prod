@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
           images: (article.heroImage?.src || article.imageUrl) ? [{ url: article.heroImage?.src || article.imageUrl! }] : undefined,
         },
         alternates: {
-          canonical: `https://infinite.sk/clanok/${article.slug}`,
+          canonical: `https://infinite.sk/vesmirne-novinky/${article.slug}`,
         },
       };
     } else {
@@ -89,8 +89,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 // Generate static params for all articles
 export async function generateStaticParams() {
   try {
-    // Fetch articles from multiple categories
-    const categories = ["objav-dna", "news", "tyzdenny-vyber"]
+    // Fetch articles from multiple categories (exclude news - they have their own route)
+    const categories = ["objav-dna", "tyzdenny-vyber"]
     const allArticles: Article[] = []
     
     for (const category of categories) {
@@ -147,10 +147,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     redirect(`/objav-dna/${slug}`)
   } else if (article.category === "tyzdenny-vyber") {
     redirect(`/tyzdenny-vyber/${slug}`)
-  } else if (article.category === "news") {
+  } else {
+    // All other articles (news, etc.) go to vesmirne-novinky
     redirect(`/vesmirne-novinky/${slug}`)
   }
-  // Other articles stay on /clanok/ URL
 
   return (
     <ArticlePageWrapper article={article}>
@@ -177,7 +177,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           __html: JSON.stringify(generateBreadcrumbStructuredData([
             { name: "Domov", url: "/" },
             { name: article.category === "tyzdenny-vyber" ? "Týždenný výber" : article.category === "news" ? "Vesmírne novinky" : article.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), url: article.category === "news" ? "/kategoria/vesmirne-novinky" : `/kategoria/${article.category}` },
-            { name: article.title, url: `/clanok/${article.slug}` },
+            { name: article.title, url: `/vesmirne-novinky/${article.slug}` },
           ]), null, 2),
         }}
       />
@@ -422,7 +422,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <SocialSharingSection 
             articleSlug={article.slug}
             articleTitle={article.title}
-            url={`https://infinite.sk/clanok/${article.slug}`}
+            url={`https://infinite.sk/vesmirne-novinky/${article.slug}`}
           />
 
           {/* CTA */}

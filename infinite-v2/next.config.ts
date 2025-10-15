@@ -1,13 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Set the correct workspace root to avoid lockfile warnings
+  outputFileTracingRoot: __dirname,
+  
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   
-  // Image optimization
+  // Image optimization - temporarily disable for debugging
   images: {
+    unoptimized: true, // Disable Next.js image optimization temporarily
     remotePatterns: [
       {
         protocol: 'https',
@@ -86,8 +90,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://region1.analytics.google.com https://vitals.vercel-insights.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://jqg44jstd1.execute-api.eu-central-1.amazonaws.com",
-              "frame-src 'self' https://www.google.com https://googleads.g.doubleclick.net",
+              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://region1.analytics.google.com https://vitals.vercel-insights.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://jqg44jstd1.execute-api.eu-central-1.amazonaws.com https://stats.g.doubleclick.net https://ep1.adtrafficquality.google",
+              "frame-src 'self' https://www.google.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

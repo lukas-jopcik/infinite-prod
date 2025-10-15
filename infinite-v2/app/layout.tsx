@@ -2,8 +2,11 @@ import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
+
+// Optimize font loading - Geist fonts are already optimized
+const geistSans = GeistSans
+const geistMono = GeistMono
 import "./globals.css"
-import "./komunita.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { PerformanceMonitor } from "@/components/performance-monitor"
@@ -19,6 +22,12 @@ export const metadata: Metadata = {
   description: "Denné objavy, vizuálne snímky a vzdelávacie články o vesmíre a astronómii.",
   generator: "v0.app",
   metadataBase: new URL("https://infinite.sk"),
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -69,7 +78,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sk" className="dark">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+      <body className={`font-sans ${geistSans.variable} ${geistMono.variable} antialiased`}>
         <GoogleConsentMode />
         <AnalyticsProvider>
           <AdManager>

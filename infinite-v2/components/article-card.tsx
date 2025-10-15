@@ -24,10 +24,12 @@ export function ArticleCard({ slug, title, perex, category, date, image, imageAl
   const getHref = () => {
     if (category === 'tyzdenny-vyber') {
       return `/tyzdenny-vyber/${slug}`
-    } else if (type === "discovery") {
+    } else if (type === "discovery" || category === 'objav-dna') {
       return `/objav-dna/${slug}`
+    } else if (category === 'news') {
+      return `/vesmirne-novinky/${slug}`
     } else {
-      return `/clanok/${slug}`
+      return `/vesmirne-novinky/${slug}` // Default to news for other categories
     }
   }
   

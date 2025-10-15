@@ -91,6 +91,7 @@ export function AdSense({
         data-full-width-responsive={responsive ? 'true' : 'false'}
         data-npa={isNonPersonalized ? 'true' : 'false'}
         onClick={handleClick}
+        suppressHydrationWarning
       />
       <Script
         id={`adsense-${slot}`}
@@ -111,6 +112,23 @@ export function AdSense({
 
 // Predefined ad components for different placements
 export function HeaderAd() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 py-4">
+        <div className="w-full h-[90px] bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">Načítavam reklamu...</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-4">
       <AdSense
