@@ -1,4 +1,4 @@
-import { ArticleHero } from "@/components/article-hero"
+import { HeroCarousel } from "@/components/hero-carousel"
 import { ArticleCard } from "@/components/article-card"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { ArticlesAPI } from "@/lib/api"
@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 async function HomePageContent() {
   // Use optimized GSI endpoints for each category
-  let latestArticle: any = null;
+  let carouselArticles: any[] = [];
   let recentArticles: any[] = [];
   let discoveryArticles: any[] = [];
   let communityArticles: any[] = [];
@@ -62,7 +62,14 @@ async function HomePageContent() {
     communityArticles = communityResponse?.articles || [];
     weeklyArticles = weeklyResponse?.articles || [];
 
-    // Build combined latest across all categories and pick hero globally
+    // Build carousel articles - one from each category in order: news, objav-dna, tyzdenny-vyber
+    const newsArticle = communityArticles.find(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
+    const discoveryArticle = discoveryArticles.find(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
+    const weeklyArticle = weeklyArticles.find(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
+    
+    carouselArticles = [newsArticle, discoveryArticle, weeklyArticle].filter(Boolean);
+
+    // Build combined latest across all categories for recent articles
     const combined = [
       ...discoveryArticles,
       ...weeklyArticles,
@@ -70,10 +77,9 @@ async function HomePageContent() {
     ];
     combined.sort((a, b) => new Date(b.originalDate || b.publishedAt).getTime() - new Date(a.originalDate || a.publishedAt).getTime());
     
-    // Only pick articles with images for hero section (exclude komunita)
-    const articlesWithImages = combined.filter(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
-    latestArticle = articlesWithImages[0] || combined[0] || null;
-    recentArticles = combined.filter(a => !latestArticle || a.slug !== latestArticle.slug).slice(0, 9);
+    // Exclude carousel articles from recent articles
+    const carouselSlugs = carouselArticles.map(a => a.slug);
+    recentArticles = combined.filter(a => !carouselSlugs.includes(a.slug)).slice(0, 9);
     
   } catch (error) {
     console.error('Failed to fetch articles:', error);
@@ -88,7 +94,7 @@ async function HomePageContent() {
   }
 
   // Safety check - if no articles are available, show a message
-  if (!latestArticle) {
+  if (carouselArticles.length === 0 && recentArticles.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <h1 className="text-2xl font-bold text-foreground mb-4">Žiadne články nie sú dostupné</h1>
@@ -100,32 +106,49 @@ async function HomePageContent() {
   return (
     <div className="flex flex-col">
       <WebsiteStructuredData />
-      {/* Preload hero image for better LCP */}
-      {latestArticle.imageUrl && (
-        <link
-          rel="preload"
-          as="image"
-          href={latestArticle.imageUrl}
-          type="image/webp"
-        />
-      )}
-      
-      {/* Hero Section - Only show if article has image */}
-      {latestArticle && latestArticle.imageUrl && (
-        <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <ArticleHero
-            slug={latestArticle.slug}
-            title={latestArticle.title}
-            perex={latestArticle.perex}
-            category={latestArticle.category}
-            date={latestArticle.originalDate || latestArticle.publishedAt}
-            image={latestArticle.imageUrl}
-            imageAlt={latestArticle.title}
+      {/* Preload carousel images for better LCP */}
+      {carouselArticles.map((article, index) => (
+        article?.imageUrl && (
+          <link
+            key={index}
+            rel="preload"
+            as="image"
+            href={article.imageUrl}
+            type="image/webp"
           />
+        )
+      ))}
+      
+      {/* Hero Carousel Section */}
+      {carouselArticles.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <HeroCarousel articles={carouselArticles} />
         </section>
       )}
 
-      {/* Discovery Grid Layout */}
+      {/* Recent Articles Grid - Moved up */}
+      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <h2 className="mb-8 text-3xl font-bold text-foreground">Najnovšie články</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {recentArticles.map((article) => (
+            <ArticleCard 
+              key={article.slug} 
+              slug={article.slug}
+              title={article.title}
+              perex={article.perex}
+              category={article.category}
+              date={article.originalDate || article.publishedAt}
+              image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
+              imageAlt={article.title}
+              author={article.author}
+              source="Infinite AI"
+              type={article.category === 'objav-dna' ? 'discovery' : 'article'}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Discovery Grid Layout - Moved down */}
       <section className="border-y border-border bg-card/50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
@@ -154,28 +177,6 @@ async function HomePageContent() {
               />
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Recent Articles Grid */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-3xl font-bold text-foreground">Najnovšie články</h2>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {recentArticles.map((article) => (
-            <ArticleCard 
-              key={article.slug} 
-              slug={article.slug}
-              title={article.title}
-              perex={article.perex}
-              category={article.category}
-              date={article.originalDate || article.publishedAt}
-              image={article.imageUrl || (article.category === 'komunita' ? null : '/placeholder-astronomy.jpg')}
-              imageAlt={article.title}
-              author={article.author}
-              source="Infinite AI"
-              type={article.category === 'objav-dna' ? 'discovery' : 'article'}
-            />
-          ))}
         </div>
       </section>
 
