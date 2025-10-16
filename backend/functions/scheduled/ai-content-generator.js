@@ -58,8 +58,11 @@ exports.handler = async (event) => {
             // Also get ESA Hubble content with pending status
             const esaHubbleItems = await getESAHubbleContentForProcessing();
             
-            // Combine both types of content
-            rawContentItems = [...apodItems, ...esaHubbleItems];
+            // Also get NASA news content with raw status
+            const nasaNewsItems = await getNASANewsContentForProcessing();
+            
+            // Combine all types of content
+            rawContentItems = [...apodItems, ...esaHubbleItems, ...nasaNewsItems];
         }
         
         if (!rawContentItems || rawContentItems.length === 0) {
@@ -1147,6 +1150,43 @@ async function getESAHubbleContentForProcessing() {
     } catch (error) {
         console.error('Error getting ESA Hubble content for processing:', error);
         return [];
+    }
+}
+
+/**
+ * Get NASA news content for processing
+ */
+async function getNASANewsContentForProcessing() {
+    try {
+        console.log('Getting NASA news content for processing...');
+        
+        const scanParams = {
+            TableName: RAW_CONTENT_TABLE,
+            FilterExpression: '#status = :status AND #source = :source',
+            ExpressionAttributeNames: {
+                '#status': 'status',
+                '#source': 'source'
+            },
+            ExpressionAttributeValues: {
+                ':status': 'raw',
+                ':source': 'nasa-news'
+            }
+        };
+        
+        console.log('DynamoDB scan params for NASA news:', JSON.stringify(scanParams, null, 2));
+        const result = await dynamodb.send(new ScanCommand(scanParams));
+        
+        console.log(`DynamoDB found ${result.Items ? result.Items.length : 0} NASA news items`);
+        
+        if (!result.Items || result.Items.length === 0) {
+            return [];
+        }
+        
+        return result.Items;
+        
+    } catch (error) {
+        console.error('Error getting NASA news content for processing:', error);
+        throw new Error('Failed to get NASA news content for processing');
     }
 }
 

@@ -11,7 +11,7 @@ echo "🚀 Deploying AI Content Generator Lambda function for Infinite v1.0..."
 REGION="eu-central-1"
 ENVIRONMENT="dev"
 FUNCTION_NAME="infinite-ai-content-generator-${ENVIRONMENT}"
-FUNCTION_DIR="/Users/jopcik/Desktop/infinite-v2/backend/functions/scheduled"
+FUNCTION_DIR="/Users/jopcik/Desktop/infinite-clean/backend/functions/scheduled"
 
 echo "📋 Deploying function: ${FUNCTION_NAME}"
 echo "📁 Function directory: ${FUNCTION_DIR}"
