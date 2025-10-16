@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: NewsArticlePageProps): Promis
       });
 
       return {
-        title: bulvarMeta.metaTitle,
+        title: `${article.title} | Vesmírne novinky | Infinite`,
         description: bulvarMeta.metaDescription,
         keywords: bulvarMeta.keywords,
         openGraph: {
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: NewsArticlePageProps): Promis
       };
     } else {
       const metadata = generateArticleMetadata({
-        title: article.title,
+        title: `${article.title} | Vesmírne novinky | Infinite`,
         description: getArticleMetaDescription(article, article.category),
         slug: article.slug,
         imageUrl: article.imageUrl,
