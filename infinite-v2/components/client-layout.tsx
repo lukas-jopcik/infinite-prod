@@ -10,7 +10,7 @@ const Footer = dynamic(() => import("@/components/footer").then(mod => ({ defaul
   loading: () => <div className="h-32 bg-muted/20 animate-pulse" />
 })
 
-const PerformanceMonitor = dynamic(() => import("@/components/performance-monitor").then(mod => ({ default: mod.PerformanceMonitor })), {
+const GoogleConsentMode = dynamic(() => import("@/components/google-consent-mode").then(mod => ({ default: mod.GoogleConsentMode })), {
   ssr: false
 })
 
@@ -22,7 +22,7 @@ const AdManager = dynamic(() => import("@/components/ad-manager").then(mod => ({
   ssr: false
 })
 
-const GoogleConsentMode = dynamic(() => import("@/components/google-consent-mode").then(mod => ({ default: mod.GoogleConsentMode })), {
+const PerformanceMonitor = dynamic(() => import("@/components/performance-monitor").then(mod => ({ default: mod.PerformanceMonitor })), {
   ssr: false
 })
 
