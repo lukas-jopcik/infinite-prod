@@ -72,30 +72,62 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
       </h1>
 
       {/* Meta */}
-      <div className="mt-2 text-sm text-gray-400 flex items-center gap-4">
-        <span className="flex items-center gap-1">
-          <span>Infinite AI</span>
-        </span>
-        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-          Generované AI
-        </span>
-        {publishedAt && (
-          <time dateTime={publishedAt} className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            {formatDate(publishedAt)}
-          </time>
-        )}
-        {originalUrl && (
-          <a 
-            href={originalUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Pôvodný článok
-          </a>
-        )}
+      <div className="mt-2 text-sm text-gray-400">
+        {/* Mobile layout - stacked */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          <div className="flex items-center gap-3">
+            <span>Infinite AI</span>
+            <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+              Generované AI
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {publishedAt && (
+              <time dateTime={publishedAt} className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {formatDate(publishedAt)}
+              </time>
+            )}
+            {originalUrl && (
+              <a 
+                href={originalUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Pôvodný článok
+              </a>
+            )}
+          </div>
+        </div>
+        
+        {/* Desktop layout - horizontal */}
+        <div className="hidden sm:flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <span>Infinite AI</span>
+          </span>
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+            Generované AI
+          </span>
+          {publishedAt && (
+            <time dateTime={publishedAt} className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              {formatDate(publishedAt)}
+            </time>
+          )}
+          {originalUrl && (
+            <a 
+              href={originalUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Pôvodný článok
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Hero image */}
