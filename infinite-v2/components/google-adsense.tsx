@@ -29,7 +29,12 @@ export function AdSense({
 }: AdSenseProps) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const consent = useGoogleConsent()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isLoaded && slot) {
@@ -52,6 +57,11 @@ export function AdSense({
     if (slot) {
       trackAdClick(slot, format, 0) // Revenue will be tracked by AdSense
     }
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
   }
 
   // Check if ads are allowed based on consent
@@ -168,6 +178,17 @@ export function FooterAd() {
 }
 
 export function ArticleAd() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8">
       <AdSense
@@ -182,6 +203,17 @@ export function ArticleAd() {
 
 // In-feed ad component for article lists
 export function InFeedAd({ index }: { index: number }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
+  }
+
   // Show ad every 6th item
   if (index % 6 !== 5) return null
 
@@ -199,6 +231,17 @@ export function InFeedAd({ index }: { index: number }) {
 
 // Responsive ad component
 export function ResponsiveAd({ className }: { className?: string }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
+  }
+
   return (
     <div className={className}>
       <AdSense

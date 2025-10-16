@@ -28,14 +28,14 @@ export async function GET() {
     const rssItems = allArticles.slice(0, 50).map(article => {
       const pubDate = new Date(article.originalDate || article.publishedAt).toUTCString()
       // Use correct URL based on category
-      let basePath = 'clanok' // Default for community articles
+      let basePath = 'vesmirne-novinky' // Default for news articles
       
       if (article.category === 'tyzdenny-vyber') {
         basePath = 'tyzdenny-vyber'
       } else if (article.category === 'objav-dna') {
         basePath = 'objav-dna'
       }
-      // Community articles and others use 'clanok'
+      // News articles and others use 'vesmirne-novinky'
       
       const articleUrl = `${baseUrl}/${basePath}/${article.slug}`
       const imageUrl = article.imageUrl ? `${baseUrl}${article.imageUrl}` : `${baseUrl}/opengraph-image.png`

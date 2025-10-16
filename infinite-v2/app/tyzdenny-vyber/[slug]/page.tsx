@@ -7,12 +7,12 @@ import { ArticleCard } from "@/components/article-card"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { ScrollToTop } from "@/components/scroll-to-top"
-import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, ImageObjectStructuredData } from "@/components/structured-data"
 import { ArticlePageWrapper, SocialSharingSection } from "@/components/article-page-wrapper"
 import { generateArticleAltText } from "@/lib/alt-text-generator"
 import { AdContainer } from "@/components/ad-manager"
 import { ImageLicenseInfo } from "@/components/image-license-info"
 import { Calendar, ExternalLink } from "lucide-react"
+import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, ImageObjectStructuredData } from "@/components/structured-data"
 import type { Metadata } from "next"
 
 interface WeeklyPickPageProps {
@@ -104,56 +104,37 @@ export default async function WeeklyPickPage({ params }: WeeklyPickPageProps) {
     notFound()
   }
 
+
   return (
     <ArticlePageWrapper article={article}>
-      {/* Structured Data in Head */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateArticleStructuredData({
-            title: article.title,
-            description: article.perex,
-            slug: article.slug,
-            imageUrl: article.imageUrl,
-            publishedAt: article.publishedAt,
-            originalDate: article.originalDate,
-            author: article.author,
-            category: article.category,
-            tags: article.tags,
-          }), null, 2),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateBreadcrumbStructuredData([
-            { name: "Domov", url: "/" },
-            { name: "Týždenný výber", url: "/kategoria/tyzdenny-vyber" },
-            { name: article.title, url: `/tyzdenny-vyber/${article.slug}` },
-          ]), null, 2),
-        }}
-      />
+      {/* Structured Data in Body - This is the correct and recommended approach */}
+      <ArticleStructuredData article={{
+        title: article.title,
+        description: article.perex,
+        slug: article.slug,
+        imageUrl: article.imageUrl,
+        publishedAt: article.publishedAt,
+        originalDate: article.originalDate,
+        author: article.author,
+        category: article.category,
+        tags: article.tags,
+      }} />
+      <BreadcrumbStructuredData items={[
+        { name: "Domov", url: "/" },
+        { name: "Týždenný výber", url: "/kategoria/tyzdenny-vyber" },
+        { name: article.title, url: `/tyzdenny-vyber/${article.slug}` },
+      ]} />
       {article.faq && article.faq.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateFAQStructuredData(article.faq), null, 2),
-          }}
-        />
+        <FAQStructuredData faqs={article.faq.map(item => ({ question: item.question, answer: item.answer }))} />
       )}
       {article.imageUrl && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateImageObjectStructuredData({
-              url: article.imageUrl,
-              alt: article.title,
-              caption: article.title,
-              creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
-              license: article.imageLicense,
-            }), null, 2),
-          }}
-        />
+        <ImageObjectStructuredData image={{
+          url: article.imageUrl,
+          alt: article.title,
+          caption: article.title,
+          creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
+          license: article.imageLicense,
+        }} />
       )}
       <div className="flex flex-col">
         <ScrollToTop />

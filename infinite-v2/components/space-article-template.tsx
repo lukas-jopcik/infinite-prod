@@ -8,6 +8,11 @@ type ImageBlock = {
   credit?: string;
 };
 
+type FAQItem = {
+  question: string;
+  answer: string;
+};
+
 type SpaceArticleData = {
   headline: string;
   perex: string;
@@ -21,6 +26,7 @@ type SpaceArticleData = {
   category?: string;
   originalUrl?: string;
   cta?: string;
+  faq?: FAQItem[];
 };
 
 interface SpaceArticleTemplateProps {
@@ -39,7 +45,8 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
     publishedAt,
     category,
     originalUrl,
-    cta = ""
+    cta = "",
+    faq = []
   } = data;
 
 
@@ -104,9 +111,11 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
           />
         </div>
         {hero.credit && (
-          <figcaption className="mt-2 text-xs text-gray-400">
-            {hero.credit}
-          </figcaption>
+          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <ExternalLink className="h-4 w-4" />
+            <span>Zdroj fotografie: </span>
+            <span className="text-accent">{hero.credit}</span>
+          </div>
         )}
       </figure>
 
@@ -119,20 +128,10 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
       <div className="max-w-none">
         {body.map((paragraph, idx) => (
           <React.Fragment key={idx}>
-            {/* Insert subhead before relevant paragraphs */}
-            {idx === 0 && subheads[0] && (
-              <h2 className="mt-8 text-2xl font-bold text-gray-100">
-                {subheads[0]}
-              </h2>
-            )}
-            {idx === 2 && subheads[1] && (
-              <h2 className="mt-8 text-2xl font-bold text-gray-100">
-                {subheads[1]}
-              </h2>
-            )}
-            {idx === 4 && subheads[2] && (
-              <h2 className="mt-8 text-2xl font-bold text-gray-100">
-                {subheads[2]}
+            {/* Insert subhead before each section */}
+            {subheads[idx] && (
+              <h2 className="mt-8 text-2xl font-bold text-foreground mb-4">
+                {subheads[idx]}
               </h2>
             )}
 
@@ -185,9 +184,24 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
         ))}
       </div>
 
+      {/* FAQ Section */}
+      {faq && faq.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6">Často kladené otázky</h2>
+          <div className="space-y-4">
+            {faq.map((faqItem, index) => (
+              <div key={index} className="border border-border rounded-lg p-6 bg-card/50">
+                <h3 className="text-lg font-semibold text-foreground mb-2">{faqItem.question}</h3>
+                <p className="text-muted-foreground leading-relaxed">{faqItem.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </article>
   );
 }
 
 // Export types for use in other components
-export type { SpaceArticleData, ImageBlock };
+export type { SpaceArticleData, ImageBlock, FAQItem };

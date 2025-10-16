@@ -36,12 +36,11 @@ export async function generateMetadata({ params }: NewsArticlePageProps): Promis
 
     // Use bulvár SEO for news articles
     if (article.category === "news" && article.type === "news") {
-            const bulvarMeta = buildBulvarMeta({
-              headline: article.title,
-              perex: article.perex,
-              body: article.content ? (Array.isArray(article.content) ? article.content.map(section => section.content) : [article.content]) : []
-            });
-      
+      const bulvarMeta = buildBulvarMeta({
+        headline: article.title,
+        perex: article.perex,
+        body: article.content ? (Array.isArray(article.content) ? article.content.map(section => section.content) : [article.content]) : []
+      });
 
       return {
         title: bulvarMeta.metaTitle,
@@ -67,7 +66,7 @@ export async function generateMetadata({ params }: NewsArticlePageProps): Promis
         },
       };
     } else {
-      return generateArticleMetadata({
+      const metadata = generateArticleMetadata({
         title: article.title,
         description: getArticleMetaDescription(article, article.category),
         slug: article.slug,
@@ -78,6 +77,8 @@ export async function generateMetadata({ params }: NewsArticlePageProps): Promis
         category: article.category,
         tags: article.tags,
       });
+      
+      return metadata;
     }
   } catch {
     return {
@@ -139,56 +140,36 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
   }
   // All other articles stay on /vesmirne-novinky/
 
+
   return (
     <ArticlePageWrapper article={article}>
-      {/* Structured Data in Head */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateArticleStructuredData({
-            title: article.title,
-            description: article.perex,
-            slug: article.slug,
-            imageUrl: article.imageUrl,
-            publishedAt: article.publishedAt,
-            originalDate: article.originalDate,
-            author: article.author,
-            category: article.category,
-            tags: article.tags,
-          }), null, 2),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateBreadcrumbStructuredData([
-            { name: "Domov", url: "/" },
-            { name: "Vesmírne novinky", url: "/kategoria/vesmirne-novinky" },
-            { name: article.title, url: `/vesmirne-novinky/${article.slug}` },
-          ]), null, 2),
-        }}
-      />
+      {/* Structured Data in Body - This is the correct and recommended approach */}
+      <ArticleStructuredData article={{
+        title: article.title,
+        description: article.perex,
+        slug: article.slug,
+        imageUrl: article.imageUrl,
+        publishedAt: article.publishedAt,
+        originalDate: article.originalDate,
+        author: article.author,
+        category: article.category,
+        tags: article.tags,
+      }} />
+      <BreadcrumbStructuredData items={[
+        { name: "Domov", url: "/" },
+        { name: "Vesmírne novinky", url: "/kategoria/vesmirne-novinky" },
+        { name: article.title, url: `/vesmirne-novinky/${article.slug}` },
+      ]} />
       {article.faq && article.faq.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateFAQStructuredData(article.faq), null, 2),
-          }}
-        />
+        <FAQStructuredData faqs={article.faq.map(item => ({ question: item.question, answer: item.answer }))} />
       )}
       {article.imageUrl && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateImageObjectStructuredData({
-              url: article.imageUrl,
-              alt: article.title,
-              caption: article.title,
-              creator: article.imagePhotographer || (article.source === 'apod-rss' ? 'NASA APOD' : article.source === 'esa-hubble' ? 'ESA Hubble' : article.source),
-              license: article.imageLicense,
-            }), null, 2),
-          }}
-        />
+        <ImageObjectStructuredData image={{
+          url: article.imageUrl,
+          alt: article.title,
+          caption: article.title,
+          creator: article.heroImage?.credit || (article.source === 'nasa-news' ? 'NASA' : article.source),
+        }} />
       )}
       <div className="flex flex-col">
         <ScrollToTop />
@@ -213,12 +194,23 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
             data={{
               headline: article.title,
               perex: article.perex,
-              body: article.content ? (Array.isArray(article.content) ? article.content.map(section => typeof section === 'string' ? section : (section as any).content || (section as any).S || '') : [article.content]) : [],
-              subheads: article.subheads ? (Array.isArray(article.subheads) ? article.subheads.map(subhead => typeof subhead === 'string' ? subhead : (subhead as any).S || '') : []) : [],
+              body: article.content && Array.isArray(article.content) 
+                ? article.content.map(section => 
+                    typeof section === 'string' ? section : 
+                    ((section as any).content?.S || (section as any).content || '')
+                  ) 
+                : [],
+              subheads: article.content && Array.isArray(article.content)
+                ? article.content.map(section => 
+                    typeof section === 'string' ? '' : 
+                    ((section as any).title?.S || (section as any).title || '')
+                  )
+                : [],
               hero: {
                 src: article.heroImage?.src || article.imageUrl || "/placeholder.svg",
                 alt: article.heroImage?.alt || article.title,
-                credit: article.heroImage?.credit
+                credit: article.heroImage?.credit || 
+                        (article.source === 'nasa-news' ? 'NASA' : article.source)
               },
               inline: article.inlineImage ? {
                 src: (article.inlineImage.src as any)?.S || article.inlineImage.src,
@@ -234,7 +226,8 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
               publishedAt: article.publishedAt,
               category: article.category,
               originalUrl: article.sourceUrl,
-              cta: article.cta
+              cta: article.cta,
+              faq: article.faq
             }}
           />
         ) : (
@@ -245,12 +238,25 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
           </div>
         )}
 
-        {/* Newsletter Signup */}
-        <div className="mt-12 rounded-2xl border border-border bg-gradient-to-br from-accent/5 to-accent/10 p-8 text-center">
-          <h3 className="mb-2 text-2xl font-bold text-foreground">Nenechaj si ujsť žiadne vesmírne novinky</h3>
-          <p className="mb-6 text-muted-foreground">Dostávaj najnovšie správy z vesmíru priamo do svojej schránky.</p>
-          <NewsletterSignup />
-        </div>
+        {/* Post-article content in container */}
+        <article className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          {/* Social Sharing */}
+          <SocialSharingSection 
+            articleSlug={article.slug}
+            articleTitle={article.title}
+            url={`https://infinite.sk/vesmirne-novinky/${article.slug}`}
+          />
+
+          {/* Newsletter CTA */}
+          <div className="mt-12 rounded-2xl border border-border bg-gradient-to-br from-accent/5 to-accent/10 p-8 text-center">
+            <h3 className="mb-2 text-2xl font-bold text-foreground">Nenechaj si ujsť žiadny objav</h3>
+            <p className="mb-6 text-muted-foreground">Dostávaj Objav dňa priamo do svojej schránky každé ráno.</p>
+            <NewsletterSignup />
+          </div>
+
+          {/* Image License Information */}
+          <ImageLicenseInfo article={article} />
+        </article>
 
         {/* Related Articles */}
         {relatedArticles.length > 0 && (

@@ -4,16 +4,39 @@ import { Article } from './api';
 let redis: any = null;
 
 if (typeof window === 'undefined') {
-  // Only import Redis on server side
-  const Redis = require('ioredis');
-  redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-    retryDelayOnFailover: 100,
-    maxRetriesPerRequest: 3,
-    lazyConnect: true,
-  });
+  // Only import Redis on server side if not disabled
+  if (process.env.DISABLE_REDIS !== 'true') {
+    try {
+      const Redis = require('ioredis');
+      redis = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+        // Add connection timeout and error handling
+        connectTimeout: 5000,
+        commandTimeout: 5000,
+      });
+      
+      // Handle Redis connection errors gracefully
+      redis.on('error', (err: any) => {
+        console.warn('[Cache] Redis connection error (continuing without cache):', err.message);
+        redis = null; // Disable Redis on error
+      });
+      
+      redis.on('connect', () => {
+        console.log('[Cache] Redis connected successfully');
+      });
+    } catch (error) {
+      console.warn('[Cache] Redis not available (continuing without cache):', error);
+      redis = null;
+    }
+  } else {
+    console.log('[Cache] Redis disabled via DISABLE_REDIS environment variable');
+    redis = null;
+  }
 }
 
 // Cache keys generator
