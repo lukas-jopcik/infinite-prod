@@ -54,17 +54,21 @@ const sendToAnalytics = (metric: WebVitalsMetric) => {
   trackPerformance(metric.name, metric.value, 'ms')
   
   // Send custom event for Web Vitals
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', 'web_vitals', {
-      metric_name: metric.name,
-      metric_value: metric.value,
-      metric_delta: metric.delta,
-      metric_id: metric.id,
-      metric_rating: rating,
-      navigation_type: metric.navigationType,
-      page_location: window.location.href,
-      page_title: document.title
-    })
+  if (typeof window !== 'undefined' && window.gtag && typeof window.gtag === 'function') {
+    try {
+      window.gtag('event', 'web_vitals', {
+        metric_name: metric.name,
+        metric_value: metric.value,
+        metric_delta: metric.delta,
+        metric_id: metric.id,
+        metric_rating: rating,
+        navigation_type: metric.navigationType,
+        page_location: window.location.href,
+        page_title: document.title
+      })
+    } catch (error) {
+      console.warn('Web Vitals tracking error:', error)
+    }
   }
 
   // Log to console in development

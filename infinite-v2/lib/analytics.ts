@@ -11,10 +11,21 @@ export const GA_TRACKING_ID = GA_CONFIG.trackingId
 // Re-export events from config
 export { ANALYTICS_EVENTS }
 
+// Utility function to safely call gtag
+const safeGtagCall = (callback: () => void) => {
+  if (typeof window !== 'undefined' && window.gtag && typeof window.gtag === 'function') {
+    try {
+      callback()
+    } catch (error) {
+      console.warn('Analytics tracking error:', error)
+    }
+  }
+}
+
 // Enhanced GA4 event tracking
 export const trackEvent = (eventName: string, parameters?: Record<string, unknown>) => {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', eventName, {
+  safeGtagCall(() => {
+    window.gtag!('event', eventName, {
       ...parameters,
       custom_map: {
         dimension1: 'content_type',
@@ -22,7 +33,7 @@ export const trackEvent = (eventName: string, parameters?: Record<string, unknow
         dimension3: 'device_type'
       }
     })
-  }
+  })
 }
 
 // Track article views with enhanced metadata
@@ -176,8 +187,8 @@ export const trackEngagementScore = (score: number, userSegment: string) => {
 
 // Enhanced page view tracking with custom dimensions
 export const trackPageView = (url: string, title: string, customDimensions?: Record<string, unknown>) => {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('config', GA_TRACKING_ID, {
+  safeGtagCall(() => {
+    window.gtag!('config', GA_TRACKING_ID, {
       page_location: url,
       page_title: title,
       custom_map: {
@@ -188,7 +199,7 @@ export const trackPageView = (url: string, title: string, customDimensions?: Rec
       },
       ...customDimensions
     })
-  }
+  })
 }
 
 // Declare gtag for TypeScript

@@ -47,8 +47,12 @@ export function GoogleConsentMode({ onConsentChange }: GoogleConsentModeProps) {
 
   const updateGoogleConsent = (newConsent: ConsentState) => {
     // Update Google Tag Manager consent
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('consent', 'update', newConsent)
+    if (typeof window !== 'undefined' && window.gtag && typeof window.gtag === 'function') {
+      try {
+        window.gtag('consent', 'update', newConsent)
+      } catch (error) {
+        console.warn('Consent mode update error:', error)
+      }
     }
     
     // Store in localStorage

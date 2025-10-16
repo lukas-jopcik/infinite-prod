@@ -33,39 +33,50 @@ export function GoogleAnalytics({ trackingId = GA_TRACKING_ID }: GoogleAnalytics
         }}
       />
       <Script
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         src={`https://www.googletagmanager.com/gtag/js?id=${trackingId}`}
       />
       <Script
         id="google-analytics"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
-            gtag('js', new Date());
-            gtag('config', '${trackingId}', {
-              page_title: document.title,
-              page_location: window.location.href,
-              custom_map: {
-                'dimension1': 'content_type',
-                'dimension2': 'user_segment', 
-                'dimension3': 'device_type',
-                'dimension4': 'traffic_source'
-              },
-              // Enhanced measurement
-              enhanced_measurement: {
-                scrolls: true,
-                outbound_clicks: true,
-                site_search: true,
-                video_engagement: true,
-                file_downloads: true
-              },
-              // Privacy settings - let consent mode control these
-              anonymize_ip: true,
-              // Content grouping for astronomy platform
-              content_group1: 'astronomy_content',
-              content_group2: 'article_type',
-              content_group3: 'content_source'
-            });
+            // Ensure gtag is available before calling it
+            function initializeGA() {
+              if (typeof gtag !== 'undefined') {
+                gtag('js', new Date());
+                gtag('config', '${trackingId}', {
+                  page_title: document.title,
+                  page_location: window.location.href,
+                  custom_map: {
+                    'dimension1': 'content_type',
+                    'dimension2': 'user_segment', 
+                    'dimension3': 'device_type',
+                    'dimension4': 'traffic_source'
+                  },
+                  // Enhanced measurement
+                  enhanced_measurement: {
+                    scrolls: true,
+                    outbound_clicks: true,
+                    site_search: true,
+                    video_engagement: true,
+                    file_downloads: true
+                  },
+                  // Privacy settings - let consent mode control these
+                  anonymize_ip: true,
+                  // Content grouping for astronomy platform
+                  content_group1: 'astronomy_content',
+                  content_group2: 'article_type',
+                  content_group3: 'content_source'
+                });
+              } else {
+                // Retry after a short delay if gtag is not yet available
+                setTimeout(initializeGA, 100);
+              }
+            }
+            
+            // Start initialization
+            initializeGA();
           `,
         }}
       />
