@@ -85,13 +85,33 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
 
   return (
     <div 
-      className="group relative overflow-hidden rounded-3xl bg-card"
+      className="group relative overflow-hidden rounded-3xl bg-card shadow-lg shadow-purple-500/20 dark:shadow-purple-500/30 min-h-[400px] lg:min-h-[500px]"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="grid gap-0 lg:grid-cols-2">
+      {/* Navigation Arrows - moved here to span full width */}
+      {articles.length > 1 && (
+        <>
+          <button
+            onClick={goToPrevious}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:left-4"
+            aria-label="Previous article"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={goToNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:right-4"
+            aria-label="Next article"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
+      
+      <div className="grid gap-0 lg:grid-cols-2 h-full">
         {/* Image */}
-        <div className="relative h-full min-h-[300px]">
+        <div className="relative min-h-[400px] lg:min-h-[500px] h-full">
           <Image 
             src={currentArticle.image || "/placeholder.svg"} 
             alt={currentArticle.imageAlt} 
@@ -103,30 +123,10 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
             placeholder="blur"
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
           />
-          
-          {/* Navigation Arrows */}
-          {articles.length > 1 && (
-            <>
-              <button
-                onClick={goToPrevious}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:left-4"
-                aria-label="Previous article"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                onClick={goToNext}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:right-4"
-                aria-label="Next article"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </>
-          )}
         </div>
 
         {/* Content */}
-        <div className="flex flex-col justify-center gap-4 p-6 lg:p-8">
+        <div className="flex flex-col justify-center gap-4 p-6 lg:p-8 min-h-[400px] lg:min-h-[500px]">
           <div className="flex items-center gap-3">
             <CategoryBadge category={currentArticle.category} />
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
