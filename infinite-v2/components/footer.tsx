@@ -21,7 +21,13 @@ export function Footer() {
               tajomstvá vesmíru každý deň.
             </p>
             <div className="flex gap-2">
-              <Input type="email" placeholder="Tvoj email" className="max-w-xs" />
+              <Input 
+                type="email" 
+                id="footer-email"
+                name="email"
+                placeholder="Tvoj email" 
+                className="max-w-xs" 
+              />
               <Button>Odoberať</Button>
             </div>
           </div>

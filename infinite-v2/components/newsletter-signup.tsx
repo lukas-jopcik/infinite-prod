@@ -40,6 +40,8 @@ export function NewsletterSignup() {
         <form onSubmit={handleSubmit} className="mx-auto flex max-w-md gap-2">
           <Input
             type="email"
+            id="newsletter-email"
+            name="email"
             placeholder="tvoj@email.sk"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

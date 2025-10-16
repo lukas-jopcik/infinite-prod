@@ -37,6 +37,8 @@ export function DiscoveryCarousel({ articles }: DiscoveryCarouselProps) {
               src={currentArticle.image || "/placeholder.svg"}
               alt={currentArticle.imageAlt}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+              quality={70}
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />

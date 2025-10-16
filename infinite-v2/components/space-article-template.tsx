@@ -139,7 +139,8 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
             fill
             className="object-cover"
             priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+            quality={75}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 896px"
           />
         </div>
         {hero.credit && (
