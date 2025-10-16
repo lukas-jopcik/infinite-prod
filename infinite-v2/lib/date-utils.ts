@@ -3,7 +3,12 @@
  * to prevent hydration mismatches
  */
 
-export function formatDate(date: string | Date): string {
+export function formatDate(date: string | Date | undefined | null): string {
+  // Handle undefined/null dates
+  if (!date) {
+    return 'Neplatný dátum';
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
   // Check if date is valid
@@ -25,7 +30,12 @@ export function formatDate(date: string | Date): string {
   return dateObj.toISOString().split('T')[0];
 }
 
-export function formatDateShort(date: string | Date): string {
+export function formatDateShort(date: string | Date | undefined | null): string {
+  // Handle undefined/null dates
+  if (!date) {
+    return 'Neplatný dátum';
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
   // Check if date is valid
@@ -42,8 +52,19 @@ export function formatDateShort(date: string | Date): string {
   });
 }
 
-export function formatDateForDateTime(date: string | Date): string {
+export function formatDateForDateTime(date: string | Date | undefined | null): string {
+  // Handle undefined/null dates
+  if (!date) {
+    return new Date().toISOString();
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if date is valid
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    // Return current date as fallback for invalid dates
+    return new Date().toISOString();
+  }
   
   // ISO format for datetime attributes
   return dateObj.toISOString();
