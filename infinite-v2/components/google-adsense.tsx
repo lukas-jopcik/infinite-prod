@@ -30,10 +30,40 @@ export function AdSense({
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [shouldLoad, setShouldLoad] = useState(false)
   const consent = useGoogleConsent()
 
   useEffect(() => {
     setMounted(true)
+    
+    // Delay AdSense loading until after LCP or user interaction
+    const loadAdSense = () => {
+      setShouldLoad(true)
+    }
+
+    // Load after LCP milestone (3 seconds) or user interaction
+    const lcpTimer = setTimeout(loadAdSense, 3000)
+    
+    // Load on user interaction
+    const events = ['scroll', 'click', 'touchstart', 'keydown'] as const
+    const handleInteraction = () => {
+      clearTimeout(lcpTimer)
+      loadAdSense()
+      events.forEach(event => {
+        document.removeEventListener(event, handleInteraction)
+      })
+    }
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleInteraction, { passive: true } as AddEventListenerOptions)
+    })
+
+    return () => {
+      clearTimeout(lcpTimer)
+      events.forEach(event => {
+        document.removeEventListener(event, handleInteraction)
+      })
+    }
   }, [])
 
   useEffect(() => {
@@ -80,6 +110,15 @@ export function AdSense({
     )
   }
 
+  // Show placeholder until AdSense should load
+  if (!shouldLoad) {
+    return (
+      <div className={`flex items-center justify-center p-4 bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg ${className}`}>
+        <span className="text-sm text-muted-foreground">Načítavam reklamu...</span>
+      </div>
+    )
+  }
+
   return (
     <>
       <Script
@@ -88,6 +127,7 @@ export function AdSense({
         crossOrigin="anonymous"
         onLoad={handleLoad}
         onError={handleError}
+        strategy="lazyOnload"
       />
       <ins
         className={`adsbygoogle ${className}`}
@@ -100,12 +140,13 @@ export function AdSense({
         data-ad-format={format}
         data-full-width-responsive={responsive ? 'true' : 'false'}
         data-npa={isNonPersonalized ? 'true' : 'false'}
+        data-ad-freq-hint="none"
         onClick={handleClick}
         suppressHydrationWarning
       />
       <Script
         id={`adsense-${slot}`}
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             try {

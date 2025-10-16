@@ -8,16 +8,8 @@ const geistSans = GeistSans
 const geistMono = GeistMono
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { PerformanceMonitor } from "@/components/performance-monitor"
-import { AnalyticsProvider } from "@/components/google-analytics"
-import { AdManager } from "@/components/ad-manager"
-import { GoogleConsentMode } from "@/components/google-consent-mode"
-import { WebVitalsMonitor } from "@/components/web-vitals-monitor"
-import { SearchConsoleMonitor } from "@/components/search-console-monitor"
+import { ClientLayout } from "@/components/client-layout"
 import { GOOGLE_VERIFICATION_CONFIG } from "@/lib/config"
-import { Suspense } from "react"
-import { SpaceLoading } from "@/components/space-loading"
 
 export const metadata: Metadata = {
   title: "Infinite – Objav dňa z vesmíru",
@@ -81,20 +73,44 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sk" className="dark">
+      <head>
+        {/* Resource hints for external domains */}
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://infinite-images-dev-349660737637.s3.eu-central-1.amazonaws.com" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+        
+        {/* Critical CSS for above-the-fold content */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            /* Critical styles for LCP elements */
+            .font-sans { font-family: ui-sans-serif, system-ui, sans-serif; }
+            .antialiased { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+            .sticky { position: sticky; }
+            .top-0 { top: 0px; }
+            .z-50 { z-index: 50; }
+            .border-b { border-bottom-width: 1px; }
+            .bg-background { background-color: oklch(1 0 0); }
+            .dark .bg-background { background-color: oklch(0.145 0 0); }
+            .backdrop-blur { backdrop-filter: blur(8px); }
+            .supports-\\[backdrop-filter\\]\\:bg-background\\/80:has([style*="backdrop-filter"]) { background-color: rgba(255, 255, 255, 0.8); }
+            .dark .supports-\\[backdrop-filter\\]\\:bg-background\\/80:has([style*="backdrop-filter"]) { background-color: rgba(37, 37, 37, 0.8); }
+            .min-h-screen { min-height: 100vh; }
+            .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+            .font-bold { font-weight: 700; }
+            .tracking-tight { letter-spacing: -0.025em; }
+            .text-foreground { color: oklch(0.145 0 0); }
+            .dark .text-foreground { color: oklch(0.985 0 0); }
+          `
+        }} />
+      </head>
       <body className={`font-sans ${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <GoogleConsentMode />
-        <AnalyticsProvider>
-          <AdManager>
-            <Suspense fallback={<SpaceLoading />}>
-              <Navigation />
-              <main className="min-h-screen">{children}</main>
-              <Footer />
-            </Suspense>
-            <PerformanceMonitor />
-            <WebVitalsMonitor />
-            <SearchConsoleMonitor />
-          </AdManager>
-        </AnalyticsProvider>
+        <ClientLayout>
+          <Navigation />
+          <main className="min-h-screen">{children}</main>
+        </ClientLayout>
       </body>
     </html>
   )
