@@ -67,7 +67,20 @@ async function HomePageContent() {
     const discoveryArticle = discoveryArticles.find(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
     const weeklyArticle = weeklyArticles.find(a => a.imageUrl && a.imageUrl !== '/placeholder.svg');
     
-    carouselArticles = [newsArticle, discoveryArticle, weeklyArticle].filter(Boolean);
+    // Transform articles to match carousel interface
+    carouselArticles = [newsArticle, discoveryArticle, weeklyArticle]
+      .filter(Boolean)
+      .map(article => ({
+        slug: article.slug,
+        title: article.title,
+        perex: article.perex,
+        category: article.category,
+        originalDate: article.originalDate,
+        publishedAt: article.publishedAt,
+        image: article.imageUrl || '/placeholder.svg',
+        imageAlt: article.title,
+        type: article.category === 'objav-dna' ? 'discovery' : article.category === 'news' ? 'news' : 'article'
+      }));
 
     // Build combined latest across all categories for recent articles
     const combined = [

@@ -14,7 +14,8 @@ interface HeroCarouselProps {
     title: string
     perex: string
     category: string
-    date: string
+    originalDate?: string
+    publishedAt?: string
     image: string
     imageAlt: string
     type?: "article" | "discovery" | "news"
@@ -78,8 +79,9 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
   }
 
   const href = getHref(currentArticle.category, currentArticle.slug)
-  const formattedDate = formatDateShort(currentArticle.date)
-  const dateTimeValue = formatDateForDateTime(currentArticle.date)
+  const articleDate = currentArticle.originalDate || currentArticle.publishedAt
+  const formattedDate = formatDateShort(articleDate)
+  const dateTimeValue = formatDateForDateTime(articleDate)
 
   return (
     <div 
@@ -107,14 +109,14 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
             <>
               <button
                 onClick={goToPrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-all hover:bg-black/40 focus:outline-none focus:ring-2 focus:ring-white/50"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:left-4"
                 aria-label="Previous article"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 onClick={goToNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-all hover:bg-black/40 focus:outline-none focus:ring-2 focus:ring-white/50"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 p-2 text-white transition-all hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:right-4"
                 aria-label="Next article"
               >
                 <ChevronRight className="h-5 w-5" />
