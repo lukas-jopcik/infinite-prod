@@ -85,7 +85,7 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
 
   return (
     <div 
-      className="group relative overflow-hidden rounded-3xl bg-card shadow-lg shadow-purple-500/20 dark:shadow-purple-500/30 min-h-[400px] lg:min-h-[500px]"
+      className="group relative overflow-hidden rounded-3xl bg-card shadow-lg shadow-purple-500/20 dark:shadow-purple-500/30 min-h-[267px] lg:min-h-[333px]"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

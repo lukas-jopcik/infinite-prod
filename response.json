@@ -1,1 +1,1 @@
-{"statusCode":200,"body":"{\"message\":\"No raw content items found for processing\",\"processedCount\":0}"}
+{"statusCode":200,"body":"{\"message\":\"AI content generation completed successfully\",\"processedCount\":1,\"errorCount\":0,\"totalItems\":1,\"results\":[{\"contentId\":\"nasa-news-578be2ec-69be-4c32-a10a-b90a2f5bc317\",\"articleId\":\"ed0319db-3f43-4c3e-b0aa-bc1df192405a\",\"title\":\"Mars odhaľuje nové tajomstvá, ktoré šokujú vedcov\",\"slug\":\"mars-odhaluje-nove-tajomstva-ktore-sokuju-vedcov\"}]}"}
