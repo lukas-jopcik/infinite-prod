@@ -121,13 +121,24 @@ exports.handler = async (event) => {
                 
             } catch (itemError) {
                 console.error(`Error processing raw content ${rawItem.contentId}:`, itemError);
-                errorCount++;
                 
-                // Update raw content status to failed
-                try {
-                    await updateRawContentStatus(rawItem.contentId, rawItem.source, 'failed');
-                } catch (updateError) {
-                    console.error('Failed to update raw content status:', updateError);
+                // Check if it's a duplicate slug error
+                if (itemError.message && itemError.message.includes('Duplicate slug detected')) {
+                    console.log(`Skipping duplicate slug for ${rawItem.contentId}`);
+                    // Update raw content status to processed (since it's a duplicate, not a failure)
+                    try {
+                        await updateRawContentStatus(rawItem.contentId, rawItem.source, 'processed');
+                    } catch (updateError) {
+                        console.error('Failed to update raw content status:', updateError);
+                    }
+                } else {
+                    errorCount++;
+                    // Update raw content status to failed
+                    try {
+                        await updateRawContentStatus(rawItem.contentId, rawItem.source, 'failed');
+                    } catch (updateError) {
+                        console.error('Failed to update raw content status:', updateError);
+                    }
                 }
             }
         }
@@ -992,6 +1003,21 @@ function generateSlug(title) {
  */
 async function storeArticle(articleRecord) {
     try {
+        // Check for duplicate slug before storing
+        const existingArticle = await dynamodb.send(new ScanCommand({
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'slug = :slug',
+            ExpressionAttributeValues: {
+                ':slug': articleRecord.slug
+            },
+            Limit: 1
+        }));
+
+        if (existingArticle.Items && existingArticle.Items.length > 0) {
+            console.log(`Article with slug ${articleRecord.slug} already exists, skipping...`);
+            throw new Error(`Duplicate slug detected: ${articleRecord.slug}`);
+        }
+
         const params = {
             TableName: ARTICLES_TABLE,
             Item: articleRecord
