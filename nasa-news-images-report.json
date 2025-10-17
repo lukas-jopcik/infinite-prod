@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-10-17T05:22:34.562Z",
+  "summary": {
+    "rawContent": {
+      "total": 4,
+      "withImages": 4,
+      "withoutImages": 0,
+      "percentageWithImages": 100
+    },
+    "articles": {
+      "total": 4,
+      "withImages": 4,
+      "withoutImages": 0,
+      "percentageWithImages": 100
+    }
+  },
+  "itemsWithoutImages": {
+    "rawContent": [],
+    "articles": []
+  }
+}

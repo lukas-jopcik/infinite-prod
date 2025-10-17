@@ -4,6 +4,7 @@ const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/clien
 const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 const crypto = require('crypto');
 const axios = require('axios');
+const { getNASAImageForNews, needsImageFallback } = require('./nasa-news-image-fallback');
 
 // Try to import Sharp, but handle gracefully if it fails
 let sharp;
@@ -728,7 +729,20 @@ async function processImages(rawItem, generatedContent) {
         const processedImages = {};
         
         // Get the main image URL - prioritize imageUrl over url for ESA content
-        const imageUrl = rawItem.imageUrl || rawItem.media_url || rawItem.url;
+        let imageUrl = rawItem.imageUrl || rawItem.media_url || rawItem.url;
+        
+        // NASA News fallback: if no image URL and it's a nasa-news article, try NASA Image API
+        if (!imageUrl && needsImageFallback(rawItem)) {
+            console.log('No image URL found, trying NASA Image API fallback...');
+            const fallbackImage = await getNASAImageForNews(rawItem);
+            if (fallbackImage) {
+                imageUrl = fallbackImage.url;
+                console.log(`✅ Found fallback image: ${fallbackImage.title}`);
+            } else {
+                console.log('❌ No fallback image found');
+            }
+        }
+        
         if (!imageUrl) {
             console.log('No image URL found for processing');
             return processedImages;
