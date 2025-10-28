@@ -178,40 +178,71 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
       url: article.imageUrl || "https://infinite.sk/og-default.jpg",
       alt: article.imageAlt || article.title,
       caption: article.imageAlt || article.title,
-      creator: article.imageAuthor || "NASA/ESA",
+      creator: article.imagePhotographer || "NASA/ESA",
       license: article.imageLicense || "Public Domain"
     })
 
     // Convert article content to SpaceArticleData format
     const spaceArticleData: SpaceArticleData = {
-      title: article.title,
-      perex: article.perex,
-      content: Array.isArray(article.content) 
-        ? article.content.map(section => ({
-            type: 'text',
-            content: section.content || section
-          }))
-        : [{ type: 'text', content: article.content || '' }],
-      imageUrl: article.imageUrl,
-      imageAlt: article.imageAlt || article.title,
-      imageAuthor: article.imageAuthor || "NASA/ESA",
-      imageLicense: article.imageLicense || "Public Domain",
-      publishedAt: article.publishedAt,
-      originalDate: article.originalDate || article.publishedAt,
-      category: article.category,
-      tags: article.tags || [],
-      readingTime: article.readingTime || 5,
+      headline: article.title,
+      perex: article.perex || "",
+      body: Array.isArray(article.content) 
+        ? article.content.map(section => 
+            typeof section === 'string' ? section : section.content || ''
+          )
+        : [article.content || ''],
+      hero: {
+        src: article.imageUrl || "https://infinite.sk/og-default.jpg",
+        alt: article.imageAlt || article.title,
+        credit: article.imagePhotographer || "NASA/ESA"
+      },
       author: article.author || "Infinite AI",
-      type: article.type || "ai-generated"
+      publishedAt: article.publishedAt,
+      category: article.category,
+      faq: [
+        {
+          question: `Čo je ${article.title.toLowerCase()}?`,
+          answer: article.perex || "Fascinujúci vesmírny objav vysvetlený jednoducho."
+        }
+      ]
     }
 
     return (
-      <ArticlePageWrapper>
+      <ArticlePageWrapper article={article}>
         {/* Structured Data */}
-        <ArticleStructuredData data={articleStructuredData} />
-        <BreadcrumbStructuredData data={breadcrumbStructuredData} />
-        <FAQStructuredData data={faqStructuredData} />
-        <ImageObjectStructuredData data={imageStructuredData} />
+        <ArticleStructuredData article={{
+          title: article.title,
+          description: getArticleMetaDescription(article),
+          imageUrl: article.imageUrl,
+          originalDate: article.originalDate || article.publishedAt,
+          publishedAt: article.publishedAt,
+          author: article.author || "Infinite AI",
+          category: article.category,
+          tags: article.tags,
+          slug: slug,
+        }} />
+        <BreadcrumbStructuredData items={[
+          { name: "Domov", url: "https://infinite.sk/" },
+          { name: "Vesmírne objavy", url: "https://infinite.sk/kategoria/vesmirne-objavy" },
+          { name: article.title, url: `https://infinite.sk/vesmirne-objavy/${slug}` },
+        ]} />
+        <FAQStructuredData faqs={[
+          {
+            question: `Čo je ${article.title.toLowerCase()}?`,
+            answer: getArticleMetaDescription(article)
+          },
+          {
+            question: "Ako funguje AI generovanie článkov?",
+            answer: "Naše AI články sú vytvorené pomocou pokročilých algoritmov, ktoré analyzujú vesmírne objavy a vytvárajú zaujímavé a vzdelávacie články v slovenčine."
+          }
+        ]} />
+        <ImageObjectStructuredData image={{
+          url: article.imageUrl || "https://infinite.sk/og-default.jpg",
+          alt: article.imageAlt || article.title,
+          caption: article.imageAlt || article.title,
+          creator: article.imagePhotographer || "NASA/ESA",
+          license: article.imageLicense || "Public Domain"
+        }} />
 
         {/* Breadcrumbs */}
         <div className="border-b border-border bg-card/30">
@@ -272,11 +303,7 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                   />
                 </div>
-                <ImageLicenseInfo 
-                  author={article.imageAuthor || "NASA/ESA"}
-                  license={article.imageLicense || "Public Domain"}
-                  source={article.imageSource}
-                />
+                <ImageLicenseInfo article={article} />
               </div>
             )}
 
@@ -292,7 +319,7 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
 
           {/* Ad Container */}
           <AdContainer 
-            adUnit="infinite-article-top"
+            position="article"
             className="mb-8"
           />
 
@@ -301,19 +328,23 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
 
           {/* Ad Container */}
           <AdContainer 
-            adUnit="infinite-article-middle"
+            position="article"
             className="my-8"
           />
 
           {/* Social Sharing */}
-          <SocialSharingSection 
-            title={article.title}
-            url={`https://infinite.sk/vesmirne-objavy/${slug}`}
-            className="my-8"
-          />
+          <div className="my-8">
+            <SocialSharingSection 
+              articleSlug={slug}
+              articleTitle={article.title}
+              url={`https://infinite.sk/vesmirne-objavy/${slug}`}
+            />
+          </div>
 
           {/* Newsletter Signup */}
-          <NewsletterSignup className="my-12" />
+          <div className="my-12">
+            <NewsletterSignup />
+          </div>
         </article>
 
         {/* Related Articles */}
@@ -332,9 +363,9 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
                     perex={relatedArticle.perex}
                     category={relatedArticle.category}
                     date={relatedArticle.originalDate || relatedArticle.publishedAt}
-                    image={relatedArticle.imageUrl}
-                    imageAlt={relatedArticle.imageAlt}
-                    type={relatedArticle.type}
+                    image={relatedArticle.imageUrl || "https://infinite.sk/og-default.jpg"}
+                    imageAlt={relatedArticle.imageAlt || relatedArticle.title}
+                    type={relatedArticle.type === "ai-generated" ? "article" : "discovery"}
                     source="Infinite AI"
                     imageUrl={relatedArticle.imageUrl}
                   />
