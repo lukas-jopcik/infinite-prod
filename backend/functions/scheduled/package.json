@@ -1,17 +1,16 @@
 {
-  "name": "bulk-upload-apod",
+  "name": "ai-discoveries-local-test",
   "version": "1.0.0",
-  "description": "Lambda function for bulk uploading APOD archive data to DynamoDB",
-  "main": "bulk-upload-apod.js",
+  "description": "Local testing for AI-Generated Space Articles",
+  "main": "test-ai-discoveries-local.js",
+  "scripts": {
+    "test": "node test-ai-discoveries-local.js",
+    "install-deps": "npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb axios uuid"
+  },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "axios": "^1.12.2",
-    "rss-parser": "^3.13.0",
-    "sharp": "^0.34.4",
-    "uuid": "^8.3.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "axios": "^1.0.0",
+    "uuid": "^9.0.0"
   }
 }

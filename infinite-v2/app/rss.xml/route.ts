@@ -8,10 +8,11 @@ export async function GET() {
 
   try {
     // Fetch latest articles from all categories
-    const [objavDnaResponse, newsResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, newsResponse, tyzdennyResponse, aiDiscoveriesResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 20).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("news", 10).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 10).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("ai-discoveries", 10).catch(() => ({ articles: [] })),
     ])
 
     // Combine all articles and sort by date
@@ -19,6 +20,7 @@ export async function GET() {
       ...objavDnaResponse.articles,
       ...newsResponse.articles,
       ...tyzdennyResponse.articles,
+      ...aiDiscoveriesResponse.articles,
     ].sort((a, b) => 
       new Date(b.originalDate || b.publishedAt).getTime() - 
       new Date(a.originalDate || a.publishedAt).getTime()
@@ -34,6 +36,8 @@ export async function GET() {
         basePath = 'tyzdenny-vyber'
       } else if (article.category === 'objav-dna') {
         basePath = 'objav-dna'
+      } else if (article.category === 'ai-discoveries') {
+        basePath = 'vesmirne-objavy'
       }
       // News articles and others use 'vesmirne-novinky'
       

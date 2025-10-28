@@ -25,6 +25,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/kategoria/vesmirne-objavy`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/hladat`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -46,10 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Fetch articles from all categories with increased limits for sitemap
-    const [objavDnaResponse, newsResponse, tyzdennyResponse] = await Promise.all([
+    const [objavDnaResponse, newsResponse, tyzdennyResponse, aiDiscoveriesResponse] = await Promise.all([
       ArticlesAPI.getArticlesByCategory("objav-dna", 1000).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("news", 200).catch(() => ({ articles: [] })),
       ArticlesAPI.getArticlesByCategory("tyzdenny-vyber", 200).catch(() => ({ articles: [] })),
+      ArticlesAPI.getArticlesByCategory("ai-discoveries", 200).catch(() => ({ articles: [] })),
     ])
 
     // Generate sitemap entries for all articles
@@ -57,6 +64,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...objavDnaResponse.articles,
       ...newsResponse.articles,
       ...tyzdennyResponse.articles,
+      ...aiDiscoveriesResponse.articles,
     ]
 
     const articlePages: MetadataRoute.Sitemap = allArticles.map((article) => {
@@ -67,6 +75,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         basePath = 'tyzdenny-vyber'
       } else if (article.category === 'objav-dna') {
         basePath = 'objav-dna'
+      } else if (article.category === 'ai-discoveries') {
+        basePath = 'vesmirne-objavy'
       }
       // All other articles use 'vesmirne-novinky'
       

@@ -1,1 +1,0 @@
-{"statusCode":200,"body":"{\"message\":\"S3 upload successful\",\"location\":\"https://infinite-nasa-apod-dev-images-349660737637.s3.eu-central-1.amazonaws.com/test-lambda-upload.txt\"}"}

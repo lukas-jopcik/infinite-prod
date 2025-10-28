@@ -10,6 +10,7 @@ const categories = [
   { name: "Objav dňa", slug: "objav-dna" },
   { name: "Vesmírne novinky", slug: "news" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber" },
+  { name: "Vesmírne objavy", slug: "vesmirne-objavy" },
 ]
 
 export function Navigation() {

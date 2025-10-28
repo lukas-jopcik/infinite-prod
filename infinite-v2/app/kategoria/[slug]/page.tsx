@@ -10,6 +10,7 @@ const categories = [
   { name: "Objav dňa", slug: "objav-dna", description: "Denné objavy a vizuálne snímky z vesmíru" },
   { name: "Vesmírne novinky", slug: "vesmirne-novinky", description: "Najnovšie správy a udalosti z vesmíru a astronómie 🚀" },
   { name: "Týždenný výber", slug: "tyzdenny-vyber", description: "Kurátorovaný výber najlepších objavov týždňa" },
+  { name: "Vesmírne objavy", slug: "vesmirne-objavy", description: "Fascinujúce vesmírne objavy vysvetlené jednoducho 🤖" },
 ]
 
 interface CategoryPageProps {
@@ -49,7 +50,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   }
 
   // Map slug to database category name
-  const dbCategory = slug === 'vesmirne-novinky' ? 'news' : slug
+  const dbCategory = slug === 'vesmirne-novinky' ? 'news' : slug === 'vesmirne-objavy' ? 'ai-discoveries' : slug
 
   // Fetch initial articles from API using optimized category endpoint
   let initialArticles: Article[] = []
