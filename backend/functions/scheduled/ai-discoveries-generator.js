@@ -126,9 +126,16 @@ Požiadavky:
 Odpovedaj v JSON formáte:
 {
   "title": "Slovenský názov článku",
-  "content": "Celý obsah článku s HTML značkami pre nadpisy",
+  "sections": [
+    {"title": "Názov sekcie (H2)", "content": "Obsah sekcie v HTML"},
+    {"title": "Ďalšia sekcia", "content": "Obsah"}
+  ],
   "excerpt": "Krátky úryvok (2-3 vety)",
-  "keywords": ["kľúčové", "slová", "pre", "SEO"],
+  "faq": [
+    {"question": "Otázka?", "answer": "Odpoveď"},
+    {"question": "Ďalšia otázka?", "answer": "Odpoveď"}
+  ],
+  "keywords": ["kľúčové", "slová"],
   "readingTime": "5 minút"
 }`;
 
@@ -166,8 +173,9 @@ Odpovedaj v JSON formáte:
         
         return {
             title: articleData.title,
-            content: articleData.content,
+            sections: articleData.sections || [],
             excerpt: articleData.excerpt,
+            faq: articleData.faq || [],
             keywords: articleData.keywords || [],
             readingTime: articleData.readingTime || '5 minút'
         };
@@ -228,8 +236,10 @@ async function storeArticle(ideaData, articleData, seoData) {
             rawContentId: ideaData.contentId,
             title: articleData.title,
             slug: seoData.slug,
-            content: articleData.content,
+            perex: articleData.excerpt,
+            content: articleData.sections, // sections array
             excerpt: articleData.excerpt,
+            faq: articleData.faq || [],
             category: 'ai-discoveries',
             status: 'published',
             publishedAt: now.toISOString(),
@@ -241,7 +251,8 @@ async function storeArticle(ideaData, articleData, seoData) {
             metaDescription: seoData.metaDescription,
             keywords: seoData.keywords,
             canonical: seoData.canonical,
-            // Image data (if available)
+            // Image data - add imageUrl for frontend compatibility
+            imageUrl: ideaData.imageUrl,
             ...(ideaData.imageUrl && {
                 hero: {
                     src: ideaData.imageUrl,

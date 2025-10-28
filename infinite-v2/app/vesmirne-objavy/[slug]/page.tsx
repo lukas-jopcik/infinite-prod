@@ -192,14 +192,14 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
           )
         : [article.content || ''],
       hero: {
-        src: article.imageUrl || "https://infinite.sk/og-default.jpg",
+        src: article.imageUrl || article.hero?.src || "https://infinite.sk/og-default.jpg",
         alt: article.imageAlt || article.title,
-        credit: article.imagePhotographer || "NASA/ESA"
+        credit: article.imagePhotographer || article.hero?.credit || "NASA/ESA"
       },
       author: article.author || "Infinite AI",
       publishedAt: article.publishedAt,
       category: article.category,
-      faq: [
+      faq: article.faq && article.faq.length > 0 ? article.faq : [
         {
           question: `Čo je ${article.title.toLowerCase()}?`,
           answer: article.perex || "Fascinujúci vesmírny objav vysvetlený jednoducho."
