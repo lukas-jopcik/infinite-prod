@@ -203,7 +203,15 @@ export function generateMetadata(config: SEOConfig): Metadata {
 
 export function generateArticleMetadata(article: ArticleData): Metadata {
   // Use correct URL based on category
-  const basePath = article.category === 'tyzdenny-vyber' ? 'tyzdenny-vyber' : 'objav-dna'
+  let basePath = 'vesmirne-novinky' // Default for news articles
+  
+  if (article.category === 'tyzdenny-vyber') {
+    basePath = 'tyzdenny-vyber'
+  } else if (article.category === 'objav-dna') {
+    basePath = 'objav-dna'
+  } else if (article.category === 'ai-discoveries') {
+    basePath = 'vesmirne-objavy'
+  }
   
   // Create a better fallback for meta description
   let metaDescription = article.description;

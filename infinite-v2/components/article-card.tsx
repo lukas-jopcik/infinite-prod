@@ -28,6 +28,8 @@ export function ArticleCard({ slug, title, perex, category, date, image, imageAl
       return `/objav-dna/${slug}`
     } else if (category === 'news') {
       return `/vesmirne-novinky/${slug}`
+    } else if (category === 'ai-discoveries') {
+      return `/vesmirne-objavy/${slug}`
     } else {
       return `/vesmirne-novinky/${slug}` // Default to news for other categories
     }
