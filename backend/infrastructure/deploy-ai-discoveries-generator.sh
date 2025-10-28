@@ -42,7 +42,7 @@ cp ../functions/scheduled/ai-discoveries-generator.js $DEPLOY_DIR/index.js
 echo -e "${YELLOW}📥 Installing dependencies...${NC}"
 cd $DEPLOY_DIR
 npm init -y > /dev/null 2>&1
-npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb @aws-sdk/client-secrets-manager axios uuid@8.3.2 > /dev/null 2>&1
+npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb axios uuid@8.3.2 > /dev/null 2>&1
 
 # Create deployment package
 echo -e "${YELLOW}📦 Creating ZIP package...${NC}"
@@ -64,6 +64,9 @@ if aws lambda get-function --function-name $FUNCTION_NAME --region $REGION > /de
         --region $REGION \
         --output text > /dev/null
     
+    # Get OpenAI API key from Secrets Manager
+    OPENAI_KEY=$(aws secretsmanager get-secret-value --secret-id "infinite/openai-api-key" --query 'SecretString' --output text | jq -r '.OPENAI_API_KEY')
+    
     # Update function configuration
     aws lambda update-function-configuration \
         --function-name $FUNCTION_NAME \
@@ -72,7 +75,7 @@ if aws lambda get-function --function-name $FUNCTION_NAME --region $REGION > /de
             REGION=$REGION,
             DYNAMODB_RAW_CONTENT_TABLE=InfiniteRawContent-$ENVIRONMENT,
             DYNAMODB_ARTICLES_TABLE=InfiniteArticles-$ENVIRONMENT,
-            OPENAI_SECRET_ARN=arn:aws:secretsmanager:$REGION:349660737637:secret:infinite/openai-api-key
+            OPENAI_API_KEY=$OPENAI_KEY
         }" \
         --timeout 300 \
         --memory-size 1024 \
@@ -91,6 +94,9 @@ else
         exit 1
     fi
     
+    # Get OpenAI API key from Secrets Manager
+    OPENAI_KEY=$(aws secretsmanager get-secret-value --secret-id "infinite/openai-api-key" --query 'SecretString' --output text | jq -r '.OPENAI_API_KEY')
+    
     # Create function
     aws lambda create-function \
         --function-name $FUNCTION_NAME \
@@ -103,7 +109,7 @@ else
             REGION=$REGION,
             DYNAMODB_RAW_CONTENT_TABLE=InfiniteRawContent-$ENVIRONMENT,
             DYNAMODB_ARTICLES_TABLE=InfiniteArticles-$ENVIRONMENT,
-            OPENAI_SECRET_ARN=arn:aws:secretsmanager:$REGION:349660737637:secret:infinite/openai-api-key
+            OPENAI_API_KEY=$OPENAI_KEY
         }" \
         --timeout 300 \
         --memory-size 1024 \

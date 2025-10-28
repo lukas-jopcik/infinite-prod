@@ -1,6 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { fetchNASASpaceImages } = require('./nasa-image-sources');
@@ -9,31 +8,24 @@ const { fetchNASASpaceImages } = require('./nasa-image-sources');
 const ENVIRONMENT = process.env.ENVIRONMENT || 'dev';
 const REGION = process.env.REGION || 'eu-central-1';
 const RAW_CONTENT_TABLE = process.env.DYNAMODB_RAW_CONTENT_TABLE || `InfiniteRawContent-${ENVIRONMENT}`;
-const OPENAI_SECRET_ARN = process.env.OPENAI_SECRET_ARN;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Initialize AWS clients
 const dynamodbClient = new DynamoDBClient({ region: REGION });
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
-const secretsManager = new SecretsManagerClient({ region: REGION });
 
 // OpenAI configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_MODEL = 'gpt-4o';
 
 /**
- * Get OpenAI API key from Secrets Manager
+ * Get OpenAI API key from environment variable
  */
 async function getOpenAIApiKey() {
-    try {
-        const command = new GetSecretValueCommand({
-            SecretId: OPENAI_SECRET_ARN
-        });
-        const result = await secretsManager.send(command);
-        return JSON.parse(result.SecretString).api_key;
-    } catch (error) {
-        console.error('Error getting OpenAI API key:', error);
-        throw new Error('Failed to get OpenAI API key');
+    if (!OPENAI_API_KEY) {
+        throw new Error('OPENAI_API_KEY environment variable not set');
     }
+    return OPENAI_API_KEY;
 }
 
 /**
@@ -100,8 +92,16 @@ Respond in JSON format:
         const content = response.data.choices[0].message.content;
         console.log('OpenAI response:', content);
         
+        // Remove markdown code blocks if present
+        let jsonContent = content.trim();
+        if (jsonContent.startsWith('```json')) {
+            jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonContent.startsWith('```')) {
+            jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
         // Parse JSON response
-        const ideaData = JSON.parse(content);
+        const ideaData = JSON.parse(jsonContent);
         
         return {
             title: ideaData.title,
@@ -171,7 +171,15 @@ Respond in JSON array format:
         const content = response.data.choices[0].message.content;
         console.log('OpenAI fallback response:', content);
         
-        const ideas = JSON.parse(content);
+        // Remove markdown code blocks if present
+        let jsonContent = content.trim();
+        if (jsonContent.startsWith('```json')) {
+            jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonContent.startsWith('```')) {
+            jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const ideas = JSON.parse(jsonContent);
         
         return ideas.map(idea => ({
             title: idea.title,
