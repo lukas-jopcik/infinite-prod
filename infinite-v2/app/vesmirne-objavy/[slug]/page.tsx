@@ -176,6 +176,7 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
     // Generate image structured data
     const imageStructuredData = generateImageObjectStructuredData({
       url: article.imageUrl || "https://infinite.sk/og-default.jpg",
+      alt: article.imageAlt || article.title,
       caption: article.imageAlt || article.title,
       creator: article.imageAuthor || "NASA/ESA",
       license: article.imageLicense || "Public Domain"
