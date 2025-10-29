@@ -106,6 +106,7 @@ async function checkArticleImageExists(imageUrl) {
             return false;
         }
         
+        // Check by imageUrl (could be S3 URL or original URL)
         const params = {
             TableName: ARTICLES_TABLE,
             FilterExpression: 'imageUrl = :imageUrl AND category = :category',
@@ -118,8 +119,30 @@ async function checkArticleImageExists(imageUrl) {
         
         const result = await dynamodb.send(new ScanCommand(params));
         if (result.Items && result.Items.length > 0) {
-            console.log(`Image already used in article: ${imageUrl}`);
+            console.log(`Image already used in article (by URL): ${imageUrl}`);
             return true;
+        }
+        
+        // Also check if the imageUrl contains S3 path (to catch S3 URLs vs original URLs)
+        // Extract potential image ID from URL for additional check
+        const imageIdMatch = imageUrl.match(/\/([^\/]+)\.(jpg|jpeg|png|gif|webp)/i);
+        if (imageIdMatch) {
+            const imageId = imageIdMatch[1];
+            const paramsById = {
+                TableName: ARTICLES_TABLE,
+                FilterExpression: 'contains(imageUrl, :imageId) AND category = :category',
+                ExpressionAttributeValues: {
+                    ':imageId': imageId,
+                    ':category': 'ai-discoveries'
+                },
+                Limit: 1
+            };
+            
+            const resultById = await dynamodb.send(new ScanCommand(paramsById));
+            if (resultById.Items && resultById.Items.length > 0) {
+                console.log(`Image already used in article (by image ID): ${imageId}`);
+                return true;
+            }
         }
         
         return false;
