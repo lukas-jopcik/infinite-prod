@@ -9,12 +9,14 @@ const categoryColors: Record<string, string> = {
   "objav-dna": "bg-accent/20 text-accent border-accent/40",
   news: "bg-blue-100 text-blue-800 border-blue-300",
   "tyzdenny-vyber": "bg-chart-4/20 text-chart-4 border-chart-4/40",
+  "vesmirne-objavy": "bg-purple-100 text-purple-800 border-purple-300",
 }
 
 const categoryLabels: Record<string, string> = {
   "objav-dna": "Objav Dňa",
   "tyzdenny-vyber": "Týždenný výber",
   "news": "Vesmírne novinky",
+  "vesmirne-objavy": "Vesmírne objavy",
 }
 
 export function CategoryBadge({ category, className }: CategoryBadgeProps) {

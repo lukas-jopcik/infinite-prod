@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: AIArticlePageProps): Promise<
           siteName: "Infinite",
           images: [
             {
-              url: article.imageUrl || "https://infinite.sk/og-default.jpg",
+              url: article.imageUrl || "https://infinite.sk/icon-512.png",
               width: 1200,
               height: 630,
               alt: article.imageAlt || article.title,
@@ -66,7 +66,7 @@ export async function generateMetadata({ params }: AIArticlePageProps): Promise<
           card: "summary_large_image",
           title: article.title,
           description: bulvarMeta.metaDescription,
-          images: [article.imageUrl || "https://infinite.sk/og-default.jpg"],
+          images: [article.imageUrl || "https://infinite.sk/icon-512.png"],
         },
         alternates: {
           canonical: `https://infinite.sk/vesmirne-objavy/${slug}`,
@@ -183,16 +183,25 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
     })
 
     // Convert article content to SpaceArticleData format
+    const bodySections = Array.isArray(article.content) 
+      ? article.content.map(section => 
+          typeof section === 'string' ? section : section.content || ''
+        )
+      : [article.content || '']
+    
+    const subheadings = Array.isArray(article.content)
+      ? article.content
+          .map(section => typeof section === 'object' && section.title ? section.title : null)
+          .filter(Boolean) as string[]
+      : []
+    
     const spaceArticleData: SpaceArticleData = {
       headline: article.title,
       perex: article.perex || "",
-      body: Array.isArray(article.content) 
-        ? article.content.map(section => 
-            typeof section === 'string' ? section : section.content || ''
-          )
-        : [article.content || ''],
+      body: bodySections,
+      subheads: subheadings.length > 0 ? subheadings : undefined,
       hero: {
-        src: article.imageUrl || "https://infinite.sk/icon-512.png",
+        src: article.imageUrl || "/icon-512.png",
         alt: article.imageAlt || article.title,
         credit: article.imagePhotographer || "NASA/ESA"
       },
@@ -363,7 +372,7 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
                     perex={relatedArticle.perex}
                     category={relatedArticle.category}
                     date={relatedArticle.originalDate || relatedArticle.publishedAt}
-                    image={relatedArticle.imageUrl || "https://infinite.sk/og-default.jpg"}
+                    image={relatedArticle.imageUrl || "https://infinite.sk/icon-512.png"}
                     imageAlt={relatedArticle.imageAlt || relatedArticle.title}
                     type={relatedArticle.type === "ai-generated" ? "article" : "discovery"}
                     source="Infinite AI"
