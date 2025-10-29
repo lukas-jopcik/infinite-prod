@@ -62,7 +62,7 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
       {/* Breadcrumbs / category */}
       {category && (
         <div className="pt-6 text-xs uppercase tracking-widest text-gray-400">
-          Vesmírne novinky
+          {category === 'ai-discoveries' || category === 'vesmirne-objavy' ? 'Vesmírne objavy' : category === 'news' ? 'Vesmírne novinky' : 'Vesmírne objavy'}
         </div>
       )}
 

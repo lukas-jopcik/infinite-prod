@@ -1,16 +1,12 @@
 import { notFound, redirect } from "next/navigation"
-import Image from "next/image"
 import { ArticlesAPI, Article, ArticleDetail } from "@/lib/api"
 import { generateArticleMetadata, getArticleMetaDescription, generateArticleStructuredData, generateBreadcrumbStructuredData, generateFAQStructuredData, generateImageObjectStructuredData } from "@/lib/seo"
-import { CategoryBadge } from "@/components/category-badge"
 import { ArticleCard } from "@/components/article-card"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { ArticlePageWrapper, SocialSharingSection } from "@/components/article-page-wrapper"
 import { AdContainer } from "@/components/ad-manager"
-import { ImageLicenseInfo } from "@/components/image-license-info"
-import { Calendar, ExternalLink } from "lucide-react"
 import { ArticleStructuredData, BreadcrumbStructuredData, FAQStructuredData, ImageObjectStructuredData } from "@/components/structured-data"
 import { generateArticleAltText } from "@/lib/alt-text-generator"
 import SpaceArticleTemplate, { SpaceArticleData } from "@/components/space-article-template"
@@ -266,66 +262,6 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
 
         {/* Article Content */}
         <article className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Article Header */}
-          <header className="mb-8">
-            <div className="mb-4">
-              <CategoryBadge category="vesmirne-objavy" className="text-base" />
-            </div>
-            
-            <h1 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl xl:text-5xl">
-              {article.title}
-            </h1>
-            
-            <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <time dateTime={article.originalDate || article.publishedAt}>
-                  {new Date(article.originalDate || article.publishedAt).toLocaleDateString('sk-SK', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </time>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🤖</span>
-                <span>AI generovaný článok</span>
-              </div>
-              {article.readingTime && (
-                <div className="flex items-center gap-2">
-                  <span>⏱️</span>
-                  <span>{article.readingTime} min čítania</span>
-                </div>
-              )}
-            </div>
-
-            {/* Article Image */}
-            {article.imageUrl && (
-              <div className="mb-8">
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
-                  <Image
-                    src={article.imageUrl}
-                    alt={article.imageAlt || article.title}
-                    fill
-                    className="object-cover"
-                    priority
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
-                  />
-                </div>
-                <ImageLicenseInfo article={article} />
-              </div>
-            )}
-
-            {/* Article Excerpt */}
-            {article.perex && (
-              <div className="mb-8 rounded-2xl border border-border bg-card/50 p-6">
-                <p className="text-lg leading-relaxed text-muted-foreground">
-                  {article.perex}
-                </p>
-              </div>
-            )}
-          </header>
-
           {/* Ad Container */}
           <AdContainer 
             position="article"
