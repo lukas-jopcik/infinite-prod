@@ -98,6 +98,39 @@ async function checkArticleExists(contentId) {
 }
 
 /**
+ * Check if image already exists in articles (duplicate detection)
+ */
+async function checkArticleImageExists(imageUrl) {
+    try {
+        if (!imageUrl) {
+            return false;
+        }
+        
+        const params = {
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'imageUrl = :imageUrl AND category = :category',
+            ExpressionAttributeValues: {
+                ':imageUrl': imageUrl,
+                ':category': 'ai-discoveries'
+            },
+            Limit: 1
+        };
+        
+        const result = await dynamodb.send(new ScanCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            console.log(`Image already used in article: ${imageUrl}`);
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Error checking article image duplicate:', error);
+        // On error, allow processing to continue (fail-safe)
+        return false;
+    }
+}
+
+/**
  * Generate Slovak article content using OpenAI
  */
 async function generateSlovakArticle(ideaData, openaiApiKey) {
@@ -361,6 +394,26 @@ exports.handler = async (event) => {
                     timestamp: new Date().toISOString()
                 })
             };
+        }
+        
+        // Check if image already exists in articles (duplicate detection)
+        const imageUrl = ideaData.imageUrl || ideaData.originalUrl;
+        if (imageUrl) {
+            const imageDuplicate = await checkArticleImageExists(imageUrl);
+            if (imageDuplicate) {
+                console.log(`Image already used in another article: ${imageUrl}. Marking idea as processed and skipping.`);
+                // Mark idea as processed even though we're skipping (to avoid reprocessing)
+                await updateIdeaStatus(ideaData.contentId);
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        message: 'Image already used in another article - skipping',
+                        contentId: ideaData.contentId,
+                        imageUrl: imageUrl,
+                        timestamp: new Date().toISOString()
+                    })
+                };
+            }
         }
         
         // Generate Slovak article

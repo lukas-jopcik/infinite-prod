@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { fetchNASASpaceImages } = require('./nasa-image-sources');
@@ -8,6 +8,7 @@ const { fetchNASASpaceImages } = require('./nasa-image-sources');
 const ENVIRONMENT = process.env.ENVIRONMENT || 'dev';
 const REGION = process.env.REGION || 'eu-central-1';
 const RAW_CONTENT_TABLE = process.env.DYNAMODB_RAW_CONTENT_TABLE || `InfiniteRawContent-${ENVIRONMENT}`;
+const ARTICLES_TABLE = process.env.DYNAMODB_ARTICLES_TABLE || `InfiniteArticles-${ENVIRONMENT}`;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Initialize AWS clients
@@ -197,6 +198,56 @@ Respond in JSON array format:
 }
 
 /**
+ * Check if image already exists in ideas or articles (duplicate detection)
+ */
+async function checkImageAlreadyUsed(imageUrl, imageNasaId) {
+    try {
+        // Check in raw ideas table
+        const rawParams = {
+            TableName: RAW_CONTENT_TABLE,
+            FilterExpression: '#source = :source AND (imageUrl = :imageUrl OR imageNasaId = :imageNasaId)',
+            ExpressionAttributeNames: {
+                '#source': 'source'
+            },
+            ExpressionAttributeValues: {
+                ':source': 'ai-generated-ideas',
+                ':imageUrl': imageUrl,
+                ':imageNasaId': imageNasaId || ''
+            },
+            Limit: 1
+        };
+        
+        const rawResult = await dynamodb.send(new ScanCommand(rawParams));
+        if (rawResult.Items && rawResult.Items.length > 0) {
+            console.log(`Image already used in raw idea: ${imageUrl || imageNasaId}`);
+            return true;
+        }
+        
+        // Check in articles table
+        const articlesParams = {
+            TableName: ARTICLES_TABLE,
+            FilterExpression: 'imageUrl = :imageUrl',
+            ExpressionAttributeValues: {
+                ':imageUrl': imageUrl
+            },
+            Limit: 1
+        };
+        
+        const articlesResult = await dynamodb.send(new ScanCommand(articlesParams));
+        if (articlesResult.Items && articlesResult.Items.length > 0) {
+            console.log(`Image already used in article: ${imageUrl}`);
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Error checking image duplicate:', error);
+        // On error, allow processing to continue (fail-safe)
+        return false;
+    }
+}
+
+/**
  * Store idea in DynamoDB
  */
 async function storeIdea(ideaData) {
@@ -271,6 +322,17 @@ exports.handler = async (event) => {
             const imageIdeas = images.slice(0, 5);
             for (const imageData of imageIdeas) {
                 try {
+                    // Check for duplicate image before processing
+                    const imageUrl = imageData.imageUrl || imageData.originalUrl;
+                    const imageNasaId = imageData.imageNasaId || imageData.id;
+                    
+                    const isDuplicate = await checkImageAlreadyUsed(imageUrl, imageNasaId);
+                    if (isDuplicate) {
+                        console.log(`Skipping duplicate image: ${imageUrl || imageNasaId}`);
+                        errors.push(`Image ${imageNasaId || 'unknown'}: Already used - skipping`);
+                        continue;
+                    }
+                    
                     const ideaData = await generateArticleIdea(imageData, openaiApiKey);
                     // Pass imageData to storeIdea so it can be saved with the idea
                     const contentId = await storeIdea({
