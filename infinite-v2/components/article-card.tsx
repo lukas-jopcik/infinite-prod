@@ -74,7 +74,7 @@ export function ArticleCard({ slug, title, perex, category, date, image, imageAl
       )}
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex items-center justify-between gap-2">
-          <CategoryBadge category={category} />
+          <CategoryBadge category={category === 'ai-discoveries' ? 'vesmirne-objavy' : category} />
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             <time dateTime={dateTimeValue}>{formattedDate}</time>
