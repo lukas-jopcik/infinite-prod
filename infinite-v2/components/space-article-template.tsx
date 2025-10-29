@@ -168,9 +168,10 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
               </h2>
             )}
 
-            <p className="mt-5 text-base leading-7 text-gray-200">
-              {paragraph}
-            </p>
+            <div 
+              className="mt-5 text-base leading-7 text-gray-200"
+              dangerouslySetInnerHTML={{ __html: paragraph }}
+            />
 
             {/* Insert first inline image after 2nd paragraph */}
             {inline && idx === 1 && (

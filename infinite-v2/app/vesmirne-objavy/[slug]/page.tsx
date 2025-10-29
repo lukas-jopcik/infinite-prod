@@ -192,7 +192,7 @@ export default async function AIArticlePage({ params }: AIArticlePageProps) {
           )
         : [article.content || ''],
       hero: {
-        src: article.imageUrl || "https://infinite.sk/og-default.jpg",
+        src: article.imageUrl || "https://infinite.sk/icon-512.png",
         alt: article.imageAlt || article.title,
         credit: article.imagePhotographer || "NASA/ESA"
       },
