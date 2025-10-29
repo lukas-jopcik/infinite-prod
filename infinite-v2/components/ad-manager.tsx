@@ -6,8 +6,7 @@ import {
   SidebarAd, 
   FooterAd, 
   ArticleAd, 
-  InFeedAd, 
-  AdPlaceholder 
+  InFeedAd
 } from './google-adsense'
 import { ADSENSE_CONFIG } from '@/lib/config'
 import { useGoogleConsent } from './google-consent-mode'
@@ -80,8 +79,9 @@ interface AdContainerProps {
 export function AdContainer({ position, index, className }: AdContainerProps) {
   const { adsEnabled } = useAdContext()
 
+  // Return null if ads are not enabled - don't take up space
   if (!adsEnabled) {
-    return <AdPlaceholder title={`${position} reklama`} className={className} />
+    return null
   }
 
   switch (position) {
