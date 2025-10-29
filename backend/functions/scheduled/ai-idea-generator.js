@@ -202,10 +202,10 @@ Respond in JSON array format:
  */
 async function checkImageAlreadyUsed(imageUrl, imageNasaId) {
     try {
-        // Check in raw ideas table
+        // Check in raw ideas table - check both S3 URL, original URL, and NASA ID
         const rawParams = {
             TableName: RAW_CONTENT_TABLE,
-            FilterExpression: '#source = :source AND (imageUrl = :imageUrl OR imageNasaId = :imageNasaId)',
+            FilterExpression: '#source = :source AND (imageUrl = :imageUrl OR originalUrl = :imageUrl OR imageNasaId = :imageNasaId)',
             ExpressionAttributeNames: {
                 '#source': 'source'
             },
@@ -223,20 +223,39 @@ async function checkImageAlreadyUsed(imageUrl, imageNasaId) {
             return true;
         }
         
-        // Check in articles table
+        // Check in articles table - check both S3 URL and original URL
         const articlesParams = {
             TableName: ARTICLES_TABLE,
-            FilterExpression: 'imageUrl = :imageUrl',
+            FilterExpression: 'imageUrl = :imageUrl OR contains(imageUrl, :imageKey)',
             ExpressionAttributeValues: {
-                ':imageUrl': imageUrl
+                ':imageUrl': imageUrl,
+                ':imageKey': imageNasaId || ''
             },
             Limit: 1
         };
         
-        const articlesResult = await dynamodb.send(new ScanCommand(articlesParams));
-        if (articlesResult.Items && articlesResult.Items.length > 0) {
-            console.log(`Image already used in article: ${imageUrl}`);
-            return true;
+        // Also check by NASA ID if available (to catch duplicates even if URLs differ)
+        if (imageNasaId) {
+            const articlesResult = await dynamodb.send(new ScanCommand(articlesParams));
+            if (articlesResult.Items && articlesResult.Items.length > 0) {
+                console.log(`Image already used in article (by URL or ID): ${imageUrl || imageNasaId}`);
+                return true;
+            }
+        } else {
+            // If no NASA ID, just check URL
+            const articlesParamsSimple = {
+                TableName: ARTICLES_TABLE,
+                FilterExpression: 'imageUrl = :imageUrl',
+                ExpressionAttributeValues: {
+                    ':imageUrl': imageUrl
+                },
+                Limit: 1
+            };
+            const articlesResult = await dynamodb.send(new ScanCommand(articlesParamsSimple));
+            if (articlesResult.Items && articlesResult.Items.length > 0) {
+                console.log(`Image already used in article: ${imageUrl}`);
+                return true;
+            }
         }
         
         return false;
@@ -323,7 +342,8 @@ exports.handler = async (event) => {
             for (const imageData of imageIdeas) {
                 try {
                     // Check for duplicate image before processing
-                    const imageUrl = imageData.imageUrl || imageData.originalUrl;
+                    // Use S3 URL if available, otherwise original URL
+                    const imageUrl = imageData.s3Url || imageData.imageUrl || imageData.originalUrl;
                     const imageNasaId = imageData.imageNasaId || imageData.id;
                     
                     const isDuplicate = await checkImageAlreadyUsed(imageUrl, imageNasaId);
@@ -334,10 +354,15 @@ exports.handler = async (event) => {
                     }
                     
                     const ideaData = await generateArticleIdea(imageData, openaiApiKey);
+                    // Use S3 URL if available, otherwise fallback to original URL
+                    const finalImageUrl = imageData.s3Url || imageData.imageUrl || imageData.originalUrl;
                     // Pass imageData to storeIdea so it can be saved with the idea
                     const contentId = await storeIdea({
                         ...ideaData,
-                        imageData: imageData // Add the processed image metadata
+                        imageData: {
+                            ...imageData,
+                            imageUrl: finalImageUrl // Use S3 URL for storage
+                        }
                     });
                     ideasGenerated.push({
                         contentId: contentId,
