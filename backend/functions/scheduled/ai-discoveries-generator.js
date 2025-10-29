@@ -12,7 +12,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Initialize AWS clients
 const dynamodbClient = new DynamoDBClient({ region: REGION });
-const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
+const dynamodb = DynamoDBDocumentClient.from(dynamodbClient, {
+    marshallOptions: {
+        removeUndefinedValues: true
+    }
+});
 
 // OpenAI configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';

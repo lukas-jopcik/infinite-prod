@@ -8,9 +8,10 @@
     "install-deps": "npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb axios uuid"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.0.0",
-    "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "axios": "^1.0.0",
-    "uuid": "^9.0.0"
+    "@aws-sdk/client-dynamodb": "^3.919.0",
+    "@aws-sdk/client-s3": "^3.919.0",
+    "@aws-sdk/lib-dynamodb": "^3.919.0",
+    "axios": "^1.13.1",
+    "uuid": "^9.0.1"
   }
 }

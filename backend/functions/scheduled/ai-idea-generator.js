@@ -272,12 +272,16 @@ exports.handler = async (event) => {
             for (const imageData of imageIdeas) {
                 try {
                     const ideaData = await generateArticleIdea(imageData, openaiApiKey);
-                    const contentId = await storeIdea(ideaData);
+                    // Pass imageData to storeIdea so it can be saved with the idea
+                    const contentId = await storeIdea({
+                        ...ideaData,
+                        imageData: imageData // Add the processed image metadata
+                    });
                     ideasGenerated.push({
                         contentId: contentId,
                         title: ideaData.title,
                         hasImage: true,
-                        imageId: imageData.id
+                        imageId: imageData.imageNasaId || imageData.id
                     });
                 } catch (error) {
                     console.error(`Failed to generate idea for image ${imageData.id}:`, error);
