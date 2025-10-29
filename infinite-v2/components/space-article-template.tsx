@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { Calendar, ExternalLink } from "lucide-react";
+import { AdContainer } from "@/components/ad-manager";
 
 type ImageBlock = {
   src: string;
@@ -152,6 +153,14 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
         )}
       </figure>
 
+      {/* Ad Container - under hero image */}
+      <div className="mt-6">
+        <AdContainer 
+          position="article"
+          className="mb-6"
+        />
+      </div>
+
       {/* Perex */}
       <p className="mt-6 text-lg leading-7 text-gray-200 font-medium">
         {perex}
@@ -220,7 +229,7 @@ export default function SpaceArticleTemplate({ data }: SpaceArticleTemplateProps
 
       {/* FAQ Section */}
       {faq && faq.length > 0 && (
-        <section className="mt-12">
+        <section className="mt-8">
           <h2 className="text-2xl font-bold text-foreground mb-6">Často kladené otázky</h2>
           <div className="space-y-4">
             {faq.map((faqItem, index) => (
