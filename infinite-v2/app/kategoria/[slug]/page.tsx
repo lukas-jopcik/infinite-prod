@@ -38,8 +38,8 @@ export async function generateStaticParams() {
   }))
 }
 
-// Add revalidation
-export const revalidate = 3600 // Revalidate every hour (ISR)
+// Add revalidation - shorter for AI-generated content
+export const revalidate = 300 // Revalidate every 5 minutes (ISR)
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params
